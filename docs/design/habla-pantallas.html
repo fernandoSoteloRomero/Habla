@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Habla · Pantallas aprobadas (dirección Línea)</title>
+<style>
+  :root { --text-secondary: #5B616B; --text-primary: #111; --border: #D9DDE2; --bg-secondary: #fff; }
+  body { margin: 0; padding: 32px; background: #F5F6F8; color: #111; font-family: "Atkinson Hyperlegible", system-ui, sans-serif; }
+  h2 { font-size: 1.6rem; } .subtitle { color: #5B616B; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ===================== Tokens "Línea" ===================== */
+  .ln {
+    --white: #FFFFFF; --concrete: #EEF0F2; --rule: #D9DDE2;
+    --ink: #000000; --ink-2: #5B616B;
+    --rosa: #E4007C;
+    --l0: #E4007C; --l1: #0057B8; --l2: #00965E; --l3: #E87722;
+    --l2-soft: #E3F4EC; --l1-soft: #E5EEF9; --yellow: #FFD100; --yellow-soft: #FFF6CC;
+    font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+  }
+  .ln h2 { margin-bottom: .3rem; }
+  .l-lead { max-width: 760px; font-size: .95rem; line-height: 1.6; color: var(--text-secondary); }
+  .l-sec { margin: 2.6rem 0 1rem; }
+  .l-sec > h3 { font-size: 1.12rem; margin-bottom: .25rem; }
+  .l-sec > .subtitle { max-width: 760px; }
+  .l-row { display: flex; flex-wrap: wrap; gap: 1.8rem 1.5rem; align-items: flex-start; }
+  .l-shot { width: 300px; }
+  .l-cap { margin-top: .75rem; font-size: .84rem; color: var(--text-secondary); line-height: 1.5; }
+  .l-cap b { color: var(--text-primary); }
+
+  /* ===================== Teléfono ===================== */
+  .l-ph { width: 300px; border-radius: 44px; padding: 9px; background: #1a1a1a; }
+  .l-scr { position: relative; height: 620px; border-radius: 36px; overflow: hidden; display: flex; flex-direction: column; background: var(--white); color: var(--ink); }
+  .l-notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 92px; height: 24px; border-radius: 20px; background: #1a1a1a; z-index: 3; }
+  .l-stat { display: flex; justify-content: space-between; padding: 12px 26px 0; font-size: 11px; font-weight: 700; }
+  .l-body { flex: 1; padding: 14px 20px 10px; display: flex; flex-direction: column; overflow: hidden; }
+  .l-body.pb { padding-bottom: 24px; }
+  .l-grow { flex: 1; }
+
+  .l-head { display: flex; justify-content: space-between; align-items: center; }
+  .l-word { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 24px; letter-spacing: -.01em; line-height: 1; }
+  .l-word i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--rosa); margin-left: 3px; vertical-align: 2px; }
+  .l-me { width: 34px; height: 34px; border-radius: 8px; background: var(--l2); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+  .l-greet { font-size: 14px; color: var(--ink-2); margin-top: 12px; line-height: 1.4; }
+  .l-title { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 30px; line-height: 1; letter-spacing: -.01em; }
+  .l-h { font-size: 21px; font-weight: 700; line-height: 1.2; }
+  .l-t { font-size: 14px; line-height: 1.45; color: var(--ink-2); }
+  .l-tiny { font-size: 12px; line-height: 1.4; color: var(--ink-2); }
+  .l-close { width: 34px; height: 34px; border-radius: 8px; background: var(--concrete); display: grid; place-items: center; }
+  .l-close svg { width: 16px; height: 16px; stroke: var(--ink); stroke-width: 3; fill: none; }
+  .l-count { font-size: 13px; color: var(--ink-2); }
+
+  .l-tile { width: 40px; height: 40px; border-radius: 9px; display: grid; place-items: center; flex-shrink: 0; }
+  .l-tile svg { width: 24px; height: 24px; fill: #fff; }
+  .l-tile.sm { width: 30px; height: 30px; border-radius: 7px; }
+  .l-tile.sm svg { width: 18px; height: 18px; }
+  .l-tile.lg { width: 96px; height: 96px; border-radius: 20px; }
+  .l-tile.lg svg { width: 60px; height: 60px; }
+
+  /* Línea vertical (inicio) */
+  .l-line { position: relative; margin-top: 14px; padding-left: 34px; }
+  .l-line::before { content: ""; position: absolute; left: 11px; top: 8px; bottom: 0; width: 8px; border-radius: 4px; background: var(--c, var(--l2)); }
+  .l-st { position: relative; min-height: 36px; display: flex; align-items: flex-start; gap: 10px; }
+  .l-st .dot { position: absolute; left: -31px; top: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 4px solid var(--c, var(--l2)); box-sizing: border-box; }
+  .l-st.done .dot { background: var(--c, var(--l2)); }
+  .l-st .nm { font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 19px; line-height: 1.1; padding-top: 1px; }
+  .l-st.done .nm { color: var(--ink-2); }
+  .l-st.ahead .nm { color: var(--ink-2); font-weight: 500; }
+  .l-st.ahead { opacity: .75; }
+  .l-st.here .dot { width: 26px; height: 26px; left: -35px; top: 0; border-width: 6px; border-color: var(--ink); background: var(--yellow); }
+  .l-tag { display: inline-block; margin-top: 3px; font-size: 12px; font-weight: 700; background: var(--ink); color: #fff; padding: 2px 7px; border-radius: 4px; }
+
+  .l-panel { margin: 6px 0 10px; background: var(--concrete); border-radius: 14px; padding: 14px; }
+  .l-panel h4 { font-size: 15px; font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; }
+  .l-panel h4 span { font-weight: 400; font-size: 13px; color: var(--ink-2); }
+  .l-steps { list-style: none; margin: 6px 0 10px; padding: 0; counter-reset: s; }
+  .l-steps li { counter-increment: s; display: flex; gap: 9px; align-items: center; font-size: 13px; padding: 2px 0; white-space: nowrap; }
+  .l-steps li::before { content: counter(s); width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--ink); font-weight: 700; font-size: 12px; display: grid; place-items: center; flex-shrink: 0; }
+
+  .l-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; border-radius: 12px; border: 0; font: 700 16px/1 "Atkinson Hyperlegible", sans-serif; }
+  .l-btn svg { width: 20px; height: 20px; }
+  .l-btn.go { background: var(--rosa); color: #fff; }
+  .l-btn.go svg { fill: #fff; }
+  .l-btn.line { background: #fff; color: var(--ink); border: 2px solid var(--ink); }
+  .l-btn.line svg { fill: var(--ink); }
+  .l-btn.quiet { background: var(--concrete); color: var(--ink); }
+  .l-btn + .l-btn { margin-top: 8px; }
+  .l-link { font-size: 14px; font-weight: 700; color: var(--l1); text-decoration: underline; text-underline-offset: 3px; }
+
+  .l-tabs { display: flex; justify-content: space-around; padding: 10px 0 18px; border-top: 2px solid var(--concrete); font-size: 11.5px; font-weight: 700; }
+  .l-tabs div { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--ink-2); }
+  .l-tabs svg { width: 22px; height: 22px; fill: var(--ink-2); }
+  .l-tabs .on { color: var(--ink); }
+  .l-tabs .on svg { fill: var(--rosa); }
+
+  /* Mini-línea de pasos */
+  .l-mini { display: flex; align-items: center; margin-top: 10px; }
+  .l-mini .seg { flex: 1; height: 5px; background: var(--rule); }
+  .l-mini .seg.ok { background: var(--rosa); }
+  .l-mini .p { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 3px solid var(--rule); box-sizing: border-box; flex-shrink: 0; }
+  .l-mini .p.ok { background: var(--rosa); border-color: var(--rosa); }
+  .l-mini .p.now { width: 20px; height: 20px; border: 5px solid var(--ink); background: var(--yellow); }
+  .l-mini-lbl { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--ink-2); margin-top: 4px; }
+  .l-mini-lbl b { color: var(--ink); }
+
+  /* Opciones tipo placa */
+  .l-opt { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; border: 2px solid var(--rule); font-size: 15px; font-weight: 700; position: relative; }
+  .l-opt small { display: block; font-size: 12.5px; font-weight: 400; color: var(--ink-2); margin-top: 1px; }
+  .l-opt.sel { border: 3px solid var(--ink); padding: 11px; }
+  .l-opt .mark { margin-left: auto; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--rule); flex-shrink: 0; }
+  .l-opt.sel .mark { border: 6px solid var(--ink); background: var(--yellow); }
+  .l-opt + .l-opt { margin-top: 8px; }
+  .l-ans { padding: 12px 14px; border-radius: 12px; border: 2px solid var(--rule); font-size: 14.5px; }
+  .l-ans + .l-ans { margin-top: 7px; }
+
+  .l-audio { display: flex; gap: 8px; }
+  .l-aud { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 46px; border-radius: 11px; font-weight: 700; font-size: 14px; background: var(--concrete); }
+  .l-aud svg { width: 18px; height: 18px; fill: var(--ink); }
+  .l-aud.main { background: var(--ink); color: #fff; }
+  .l-aud.main svg { fill: #fff; }
+
+  .l-en { font-size: 22px; font-weight: 700; line-height: 1.25; }
+  .l-es { font-size: 15px; color: var(--ink-2); margin-top: 6px; }
+  .l-note { border-left: 5px solid var(--yellow); background: var(--yellow-soft); padding: 9px 11px; border-radius: 4px 10px 10px 4px; font-size: 13px; line-height: 1.45; }
+  .l-info { border-left: 5px solid var(--l1); background: var(--l1-soft); padding: 9px 11px; border-radius: 4px 10px 10px 4px; font-size: 13px; line-height: 1.45; }
+  .l-good { border-left: 5px solid var(--l2); background: var(--l2-soft); padding: 9px 11px; border-radius: 4px 10px 10px 4px; font-size: 13px; line-height: 1.45; }
+
+  /* Conversación */
+  .l-chat { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .l-ai { display: flex; gap: 9px; align-items: flex-start; }
+  .l-ai .txt { font-size: 14px; line-height: 1.38; }
+  .l-ai .acts { display: flex; gap: 14px; margin-top: 5px; font-size: 12.5px; font-weight: 700; color: var(--l1); }
+  .l-ai .acts span { display: inline-flex; align-items: center; gap: 4px; }
+  .l-ai .acts svg { width: 14px; height: 14px; fill: var(--l1); }
+  .l-you { align-self: flex-end; max-width: 84%; background: var(--ink); color: #fff; padding: 9px 12px; border-radius: 12px 12px 3px 12px; font-size: 14.5px; line-height: 1.35; }
+  .l-fix { align-self: flex-end; max-width: 92%; background: var(--l2-soft); border-left: 5px solid var(--l2); padding: 8px 11px; border-radius: 4px 10px 10px 4px; font-size: 13px; line-height: 1.4; }
+  .l-fix .say { display: block; font-weight: 700; font-size: 14.5px; margin-top: 2px; }
+  .l-fix .kept { display: block; margin-top: 4px; font-size: 12px; color: #006B43; font-weight: 700; }
+  .l-sugg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .l-sugg span { font-size: 12.5px; font-weight: 700; padding: 6px 9px; border-radius: 8px; border: 2px solid var(--rule); }
+  .l-input { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border-radius: 12px; border: 2px solid var(--ink); margin-top: 8px; }
+  .l-input .f { flex: 1; font-size: 13px; color: var(--ink-2); }
+  .l-input .send { width: 40px; height: 40px; border-radius: 9px; background: var(--rosa); display: grid; place-items: center; }
+  .l-input .send svg { width: 20px; height: 20px; fill: #fff; }
+  .l-mic { width: 84px; height: 84px; border-radius: 50%; background: var(--rosa); display: grid; place-items: center; margin: 0 auto; box-shadow: 0 0 0 8px #fff, 0 0 0 11px var(--rosa); }
+  .l-mic svg { width: 36px; height: 36px; fill: #fff; }
+  .l-live { border: 2px dashed var(--ink); border-radius: 12px; padding: 10px 12px; font-size: 15px; font-weight: 700; }
+  .l-live small { display: block; font-size: 12px; font-weight: 400; color: var(--ink-2); margin-top: 3px; }
+
+  /* Red de líneas (Mi línea) */
+  .l-net { position: relative; margin-top: 10px; }
+  .l-lv { display: flex; gap: 12px; }
+  .l-lv .rail { position: relative; width: 26px; flex-shrink: 0; }
+  .l-lv .rail::before { content: ""; position: absolute; left: 9px; top: 0; bottom: 0; width: 8px; background: var(--c); }
+  .l-lv:first-child .rail::before { top: 10px; border-radius: 4px 4px 0 0; }
+  .l-lv:last-child .rail::before { bottom: 10px; border-radius: 0 0 4px 4px; opacity: .35; }
+  .l-lv .cont { flex: 1; padding-bottom: 6px; }
+  .l-lv .lvname { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 17px; display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .l-lv .lvname em { font-style: normal; font-size: 12px; font-family: "Atkinson Hyperlegible", sans-serif; font-weight: 700; color: #fff; background: var(--c); padding: 1px 6px; border-radius: 4px; }
+  .l-lv .lvname small { font-family: "Atkinson Hyperlegible", sans-serif; font-weight: 400; font-size: 12px; color: var(--ink-2); }
+  .l-lv .xfer { position: absolute; left: 3px; top: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 4px solid var(--ink); box-sizing: border-box; z-index: 1; }
+  .l-can { font-size: 12.5px; line-height: 1.3; padding: 2px 0; color: var(--ink); display: flex; gap: 6px; }
+  .l-can svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; fill: none; stroke: var(--c); stroke-width: 3; }
+  .l-can.now { font-weight: 700; }
+  .l-can.now::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--yellow); border: 3px solid var(--ink); flex-shrink: 0; margin: 2px 1px 0 0; box-sizing: border-box; }
+  .l-can.later { color: var(--ink-2); }
+  .l-facts { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); margin-top: 10px; }
+  .l-facts div { padding: 8px 0; text-align: center; font-size: 11.5px; color: var(--ink-2); }
+  .l-facts div + div { border-left: 1px solid var(--rule); }
+  .l-facts b { display: block; font-family: "Barlow Condensed", sans-serif; font-size: 22px; line-height: 1; color: var(--ink); }
+
+  /* Letrero de estación */
+  .l-sign { background: var(--c, var(--l2)); color: #fff; margin: -14px -20px 0; padding: 70px 22px 26px; }
+  .l-sign .stname { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 44px; line-height: .95; margin-top: 16px; letter-spacing: -.01em; }
+  .l-sign p { font-size: 15px; line-height: 1.45; margin-top: 10px; }
+  .l-sign.grey { background: var(--concrete); color: var(--ink); }
+  .l-track { position: relative; height: 34px; margin: 20px 0 6px; }
+  .l-track::before { content: ""; position: absolute; left: 0; right: 0; top: 13px; height: 8px; border-radius: 4px; background: var(--rule); }
+  .l-track .fill { position: absolute; left: 0; top: 13px; height: 8px; width: 58%; border-radius: 4px; background: var(--l2); }
+  .l-track .a, .l-track .b { position: absolute; top: 7px; width: 20px; height: 20px; border-radius: 50%; box-sizing: border-box; }
+  .l-track .a { left: 55%; background: var(--l2); border: 4px solid var(--l2); }
+  .l-track .b { right: 0; background: #fff; border: 4px solid var(--l2); }
+  .l-track .train { position: absolute; left: 52%; top: 4px; width: 26px; height: 26px; border-radius: 50%; background: var(--yellow); border: 6px solid var(--ink); box-sizing: border-box; animation: l-go 2.4s ease-in-out .6s infinite alternate; }
+  @keyframes l-go { from { left: 30%; } to { left: 52%; } }
+  @media (prefers-reduced-motion: reduce) { .l-track .train { animation: none; } }
+  .l-trlbl { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); }
+  .l-trlbl b { color: var(--ink); }
+
+  /* Repaso */
+  .l-flash { border: 3px solid var(--ink); border-radius: 16px; padding: 18px 16px; }
+  .l-flash hr { border: 0; border-top: 2px dashed var(--rule); margin: 14px 0 10px; }
+  .l-rate { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .l-rate div { border: 2px solid var(--rule); border-top-width: 6px; border-radius: 10px; padding: 9px 6px; text-align: center; font-size: 13px; font-weight: 700; line-height: 1.2; }
+  .l-rate div small { display: block; font-size: 11px; font-weight: 400; color: var(--ink-2); margin-top: 3px; }
+  .l-rate .r1 { border-top-color: var(--rosa); } .l-rate .r2 { border-top-color: var(--yellow); } .l-rate .r3 { border-top-color: var(--l2); }
+  .l-list .it { display: flex; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+  .l-list .it:last-child { border-bottom: 0; }
+  .l-list .it b { display: block; font-size: 14px; }
+  .l-list .it span { font-size: 12.5px; color: var(--ink-2); }
+  .l-list .it .spk { margin-left: auto; width: 34px; height: 34px; border-radius: 8px; background: var(--concrete); display: grid; place-items: center; flex-shrink: 0; }
+  .l-list .it .spk svg { width: 16px; height: 16px; fill: var(--ink); }
+  .l-chk { list-style: none; padding: 0; margin: 6px 0 0; }
+  .l-chk li { display: flex; gap: 8px; font-size: 13.5px; line-height: 1.35; padding: 3px 0; }
+  .l-chk li svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; fill: none; stroke: var(--l2); stroke-width: 3.2; }
+  .l-pair { display: flex; gap: 8px; align-items: baseline; font-size: 13.5px; padding: 3px 0; flex-wrap: wrap; }
+  .l-pair s { color: var(--ink-2); }
+  .l-pair b { color: #006B43; }
+  .l-dots5 { display: flex; gap: 5px; align-items: center; }
+  .l-dots5 i { width: 14px; height: 14px; border-radius: 50%; border: 3px solid var(--l2); box-sizing: border-box; }
+  .l-dots5 i.on { background: var(--l2); }
+
+  /* Admin */
+  .l-meter { height: 12px; border-radius: 6px; background: var(--concrete); position: relative; overflow: hidden; margin-top: 8px; }
+  .l-meter i { position: absolute; left: 0; top: 0; bottom: 0; width: 22%; background: var(--ink); }
+  .l-meter u { position: absolute; left: 22%; top: 0; bottom: 0; width: 46%; background: repeating-linear-gradient(90deg, var(--rule) 0 4px, transparent 4px 8px); }
+  .l-mem { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+  .l-mem:last-child { border-bottom: 0; }
+  .l-mem .av { width: 32px; height: 32px; border-radius: 7px; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+  .l-mem b { display: block; font-size: 14px; }
+  .l-mem span { font-size: 12px; color: var(--ink-2); }
+  .l-mem .r { margin-left: auto; font-size: 13px; font-weight: 700; }
+  .l-field { display: flex; gap: 7px; }
+  .l-field .in { flex: 1; min-height: 46px; display: flex; align-items: center; padding: 0 12px; border-radius: 11px; border: 2px solid var(--ink); font-size: 13px; color: var(--ink-2); }
+  .l-field .go { min-height: 46px; padding: 0 14px; display: flex; align-items: center; border-radius: 11px; background: var(--rosa); color: #fff; font-weight: 700; font-size: 14px; }
+
+  /* Avisos */
+  .l-alert { display: flex; gap: 11px; padding: 12px; border-radius: 12px; background: var(--concrete); font-size: 13px; line-height: 1.42; }
+  .l-alert + .l-alert { margin-top: 9px; }
+  .l-alert .ic { width: 32px; height: 32px; border-radius: 7px; background: var(--ink); display: grid; place-items: center; flex-shrink: 0; }
+  .l-alert .ic svg { width: 19px; height: 19px; fill: #fff; }
+  .l-alert b { display: block; font-size: 14px; margin-bottom: 2px; }
+  .l-alert .act { display: inline-block; margin-top: 6px; font-weight: 700; color: var(--l1); text-decoration: underline; text-underline-offset: 3px; }
+  .l-alert.blue { background: var(--l1-soft); } .l-alert.blue .ic { background: var(--l1); }
+  .l-alert.yellow { background: var(--yellow); } .l-alert.yellow .act { color: var(--ink); }
+
+  /* Bienvenida */
+  .l-cover { position: relative; flex: 1; display: flex; flex-direction: column; padding-left: 34px; }
+  .l-cover::before { content: ""; position: absolute; left: 11px; top: 0; bottom: 0; width: 8px; border-radius: 4px; background: var(--rosa); }
+  .l-cover .big { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 76px; line-height: .85; letter-spacing: -.02em; margin-top: 28px; }
+  .l-cover .st { position: relative; font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 18px; color: var(--ink-2); padding: 7px 0; }
+  .l-cover .st::before { content: ""; position: absolute; left: -31px; top: 9px; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 4px solid var(--rosa); box-sizing: border-box; }
+  .l-cover .st.first::before { width: 26px; height: 26px; left: -35px; top: 5px; border: 6px solid var(--ink); background: var(--yellow); }
+  .l-cover .st.first { color: var(--ink); }
+
+  /* Laptop */
+  .l-lap { width: 100%; max-width: 1040px; }
+  .l-lap-scr { border: 10px solid #1a1a1a; border-bottom-width: 14px; border-radius: 14px 14px 0 0; overflow: hidden; background: #fff; color: var(--ink); height: 560px; display: flex; flex-direction: column; }
+  .l-lap-base { height: 16px; margin: 0 -4%; border-radius: 0 0 14px 14px; background: linear-gradient(#cfcfd4, #a9a9b0); }
+  .l-topbar { display: flex; align-items: center; gap: 26px; padding: 14px 26px; border-bottom: 2px solid var(--concrete); }
+  .l-topbar .nav { display: flex; gap: 22px; font-size: 14px; font-weight: 700; color: var(--ink-2); margin-left: auto; }
+  .l-topbar .nav .on { color: var(--ink); box-shadow: inset 0 -4px 0 var(--rosa); padding-bottom: 6px; margin-bottom: -6px; }
+  .l-desk { flex: 1; display: grid; grid-template-columns: 270px 1fr 260px; overflow: hidden; }
+  .l-desk > div { padding: 22px 24px; overflow: hidden; }
+  .l-desk .col-line { border-right: 2px solid var(--concrete); }
+  .l-desk .col-side { border-left: 2px solid var(--concrete); display: flex; flex-direction: column; gap: 14px; }
+  .l-bigst { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 48px; line-height: .95; letter-spacing: -.01em; margin-top: 6px; }
+  .l-hsteps { display: grid; grid-template-columns: repeat(4, 1fr); margin: 22px 0 18px; }
+  .l-hsteps div { position: relative; padding-top: 26px; font-size: 13.5px; font-weight: 700; line-height: 1.25; }
+  .l-hsteps div span { display: block; font-weight: 400; color: var(--ink-2); font-size: 12.5px; margin-top: 2px; }
+  .l-hsteps div::before { content: ""; position: absolute; top: 7px; left: 0; right: 0; height: 5px; background: var(--rule); }
+  .l-hsteps div:first-child::before { left: 9px; }
+  .l-hsteps div:last-child::before { right: auto; width: 9px; }
+  .l-hsteps div::after { content: ""; position: absolute; top: 0; left: 0; width: 20px; height: 20px; border-radius: 50%; border: 4px solid var(--ink); background: #fff; box-sizing: border-box; }
+  .l-hsteps div:first-child::after { background: var(--yellow); }
+
+  /* Sistema */
+  .l-tokens { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; max-width: 1080px; }
+  .l-tok { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: var(--bg-secondary); }
+  .l-tok h4 { font-size: .92rem; margin-bottom: .6rem; }
+  .l-sw { display: flex; align-items: center; gap: 10px; font-size: .82rem; margin-bottom: 7px; }
+  .l-sw i { width: 28px; height: 28px; border-radius: 6px; border: 1px solid rgba(0,0,0,.12); flex-shrink: 0; }
+  .l-sw code { color: var(--text-secondary); font-size: .74rem; }
+  .l-tok p { font-size: .82rem; line-height: 1.55; color: var(--text-secondary); }
+  .l-pictos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 8px; }
+  .l-pictos div { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: .72rem; color: var(--text-secondary); text-align: center; }
+  .l-comp { background: #fff; color: #000; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-food" viewBox="0 0 24 24"><rect x="5" y="2.5" width="1.7" height="7" rx=".8"/><rect x="7.6" y="2.5" width="1.7" height="7" rx=".8"/><rect x="10.2" y="2.5" width="1.7" height="7" rx=".8"/><rect x="5" y="8" width="6.9" height="3" rx="1.5"/><rect x="7.4" y="9" width="2.1" height="12.5" rx="1.05"/><path d="M15.2 2.5c3.4 1.2 4.4 5.6 3.6 9.8h-1.3v8.2a1.05 1.05 0 0 1-2.1 0V3.4c0-.6.3-1 .8-.9z"/></symbol>
+    <symbol id="i-hand" viewBox="0 0 24 24"><rect x="5.5" y="5" width="2.6" height="10" rx="1.3"/><rect x="8.8" y="2.5" width="2.6" height="11" rx="1.3"/><rect x="12.1" y="3" width="2.6" height="10.5" rx="1.3"/><rect x="15.4" y="5.5" width="2.6" height="9" rx="1.3"/><path d="M5.5 12h12.5v3.5c0 3.6-2.6 6.5-6.2 6.5-2 0-3.4-.9-4.5-2.3L3.7 15.4a1.5 1.5 0 0 1 2.2-2L7 14.6V12z"/></symbol>
+    <symbol id="i-work" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M9 3.5h6a1.5 1.5 0 0 1 1.5 1.5v2H21a1 1 0 0 1 1 1V19a1.5 1.5 0 0 1-1.5 1.5h-17A1.5 1.5 0 0 1 2 19V8a1 1 0 0 1 1-1h4.5V5A1.5 1.5 0 0 1 9 3.5zm.5 2V7h5V5.5z"/></symbol>
+    <symbol id="i-sign" viewBox="0 0 24 24"><rect x="11" y="2" width="2.2" height="20" rx="1"/><path d="M4 5h11.5l3 2.6-3 2.6H4z"/><path d="M20 12H9.5l-3 2.6 3 2.6H20z"/></symbol>
+    <symbol id="i-bed" viewBox="0 0 24 24"><rect x="2" y="6" width="2.4" height="14" rx="1"/><rect x="19.6" y="13" width="2.4" height="7" rx="1"/><rect x="2" y="12" width="20" height="5" rx="1"/><rect x="5.4" y="8.4" width="5.5" height="3" rx="1.5"/><rect x="11.8" y="9" width="10.2" height="3" rx="1.2"/></symbol>
+    <symbol id="i-plane" viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1z"/></symbol>
+    <symbol id="i-waiter" viewBox="0 0 24 24"><circle cx="12" cy="5" r="3.2"/><path d="M5.5 22v-7.5A4.5 4.5 0 0 1 10 10h4a4.5 4.5 0 0 1 4.5 4.5V22z"/><path d="M9.6 11.2l2.4 1.5 2.4-1.5v3l-2.4-1.5-2.4 1.5z" fill="#ffd100"/></symbol>
+    <symbol id="i-both" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M4 7.5h3.5V6a1.2 1.2 0 0 1 1.2-1.2h4.6A1.2 1.2 0 0 1 14.5 6v1.5H18a1 1 0 0 1 1 1V11H2.9V8.5a1 1 0 0 1 1-1zm5.2-1.1V7.5h3.6V6.4z"/><path d="M2.9 12.5H11v6H4.1a1.2 1.2 0 0 1-1.2-1.2z"/><path d="M22 15.5v-1.3l-4.6-2.9V8.2a.9.9 0 0 0-1.8 0v3.1L11 14.2v1.3l4.6-1.4v2.7l-1.1.9v.9l2-.6 2 .6v-.9l-1.1-.9v-2.7z"/></symbol>
+    <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M15.5 8.5a5 5 0 0 1 0 7l-1.4-1.4a3 3 0 0 0 0-4.2z"/><path d="M18.3 5.7a9 9 0 0 1 0 12.6l-1.4-1.4a7 7 0 0 0 0-9.8z"/></symbol>
+    <symbol id="i-translate" viewBox="0 0 24 24"><path d="M3 4h10v2H9.3c-.4 2.3-1.4 4.3-2.8 5.8 1 .8 2.2 1.4 3.6 1.8l-.6 1.9c-1.7-.5-3.1-1.2-4.4-2.2-1.2.9-2.6 1.6-4.1 2.1L.4 13.5c1.3-.4 2.4-1 3.4-1.7C2.7 10.5 2 9 1.6 7.5h2.1c.4 1.1.9 2.1 1.6 2.9 1-1.1 1.7-2.6 2-4.4H3z"/><path d="M16 10h2.2l4.4 11h-2.2l-1-2.6h-4.6l-1 2.6h-2.2zm-.4 6.4h3.4L17.1 12z"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M3 20.5l18-8.5L3 3.5l.02 6.6L15 12 3.02 13.9z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5l4.5 4.5L19.5 6.5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="8.5" y="2" width="7" height="12.5" rx="3.5"/><path d="M5 11.2h2a5 5 0 0 0 10 0h2a7 7 0 0 1-6 6.9V21h3v2H8v-2h3v-2.9a7 7 0 0 1-6-6.9z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><path d="M2.5 5h19a1 1 0 0 1 1 1v.6L12 13.2 1.5 6.6V6a1 1 0 0 1 1-1z"/><path d="M1.5 8.9l10.5 6.6 10.5-6.6V18a1 1 0 0 1-1 1h-19a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-nowifi" viewBox="0 0 24 24"><path d="M2.3 3.7l1.4-1.4 18 18-1.4 1.4-5.2-5.2a3.5 3.5 0 0 0-3.1-.9 3.6 3.6 0 0 0-1.7.9l-1.9-1.9A6.2 6.2 0 0 1 12 13c.4 0 .8 0 1.1.1L10 10a9.6 9.6 0 0 0-4 2.5L4.1 10.6A12.3 12.3 0 0 1 7.8 8L5.6 5.9A15.3 15.3 0 0 0 1.4 9L-.5 7.1a18 18 0 0 1 4.3-3z"/><circle cx="12" cy="19" r="2"/><path d="M12 7.2c3.6 0 7 1.4 9.6 3.9l1.9-1.9A16.3 16.3 0 0 0 9.4 4.4l2.4 2.4z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20zm-1 4.5v6.3l4.6 2.8 1-1.7-3.6-2.2V6.5z"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M4 4.5h13.5v2.5H5a1 1 0 0 0 0 2h16a1 1 0 0 1 1 1V19a1.5 1.5 0 0 1-1.5 1.5h-16A2.5 2.5 0 0 1 2 18V6.5a2 2 0 0 1 2-2z"/><circle cx="17.5" cy="14.5" r="1.6" fill="#ffd100"/></symbol>
+    <symbol id="i-group" viewBox="0 0 24 24"><circle cx="8.5" cy="7" r="3.3"/><circle cx="16.8" cy="8.2" r="2.7"/><path d="M2 20v-2.5A4.5 4.5 0 0 1 6.5 13h4a4.5 4.5 0 0 1 4.5 4.5V20z"/><path d="M16.5 20v-2.5c0-1.4-.4-2.6-1.2-3.6h2.4a4.3 4.3 0 0 1 4.3 4.3V20z"/></symbol>
+    <symbol id="i-tab-today" viewBox="0 0 24 24"><rect x="10.5" y="1" width="3" height="22" rx="1.5"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2.6" fill="#fff"/></symbol>
+    <symbol id="i-tab-review" viewBox="0 0 24 24"><rect x="6" y="2" width="15" height="17" rx="2.5"/><path d="M3 6.5h1.5v12A1.5 1.5 0 0 0 6 20h12v1.5a1.5 1.5 0 0 1-1.5 1.5H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-tab-map" viewBox="0 0 24 24"><rect x="4" y="2" width="3" height="20" rx="1.5"/><rect x="4" y="9.5" width="16" height="3" rx="1.5"/><circle cx="5.5" cy="11" r="3.4"/><circle cx="18.5" cy="11" r="3.4"/><circle cx="5.5" cy="4" r="2.6"/><circle cx="5.5" cy="20" r="2.6"/></symbol>
+  </defs>
+</svg>
+
+<div class="ln">
+
+<h2>Habla, dirección Línea: todas las pantallas</h2>
+<p class="l-lead">En el orden en que las vive una persona. Dime en la terminal qué te gusta y qué cambiarías; puedes usar el número de cada pantalla, por ejemplo "la 2.4".</p>
+
+<!-- ===================================================== 1 -->
+<div class="l-sec">
+  <h3>1. Primer uso</h3>
+  <p class="subtitle">Entrar, una sola pregunta y una evaluación corta que no da pena.</p>
+  <div class="l-row">
+
+    <!-- 1.1 Bienvenida -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body pb">
+        <div class="l-cover">
+          <div class="big">Habla</div>
+          <div class="l-t" style="margin:12px 0 18px;font-size:16px;color:var(--ink)">Inglés para moverte en la vida real, 20 minutos al día.</div>
+          <div class="st first">Presentarte</div>
+          <div class="st">Pedir comida</div>
+          <div class="st">Tu primera junta</div>
+          <div class="l-grow"></div>
+        </div>
+        <div class="l-btn line" style="margin-top:14px"><span style="font-weight:700;font-size:18px;color:#4285F4">G</span>Continuar con Google</div>
+        <div class="l-btn quiet"><svg style="fill:var(--ink)"><use href="#i-mail"/></svg>Recibir un enlace por correo</div>
+        <div class="l-tiny" style="margin-top:10px">Solo pueden entrar personas invitadas. Si no tienes invitación, pídesela a quien te recomendó la app.</div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>1.1 Bienvenida.</b> La línea rosa ya muestra el viaje: tu primera estación en amarillo. Sin contraseñas: Google o un enlace al correo.</p></div>
+
+    <!-- 1.2 Motivo -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body pb">
+        <div class="l-mini"><span class="p ok"></span><span class="seg ok"></span><span class="p now"></span><span class="seg"></span><span class="p"></span></div>
+        <div class="l-mini-lbl"><span>Cuenta</span><b>Tu motivo</b><span>Evaluación</span></div>
+        <div class="l-h" style="margin-top:22px;font-size:23px">¿Para qué quieres aprender inglés?</div>
+        <div class="l-t" style="margin:6px 0 16px">Solo cambia los ejemplos que vas a ver. Tu plan es el mismo.</div>
+        <div class="l-opt"><div class="l-tile" style="background:var(--l1)"><svg><use href="#i-work"/></svg></div><div>Trabajo<small>Juntas, correos y llamadas</small></div><span class="mark"></span></div>
+        <div class="l-opt"><div class="l-tile" style="background:var(--rosa)"><svg><use href="#i-plane"/></svg></div><div>Viajes<small>Aeropuerto, hotel y restaurante</small></div><span class="mark"></span></div>
+        <div class="l-opt sel"><div class="l-tile" style="background:var(--ink)"><svg><use href="#i-both"/></svg></div><div>Las dos cosas<small>Un poco de cada una</small></div><span class="mark"></span></div>
+        <div class="l-grow"></div>
+        <div class="l-btn go">Continuar</div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>1.2 Tu motivo.</b> Tres placas grandes con pictograma; no hay que escribir nada. La seleccionada lleva borde negro y el círculo amarillo.</p></div>
+
+    <!-- 1.3 Evaluación -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body pb">
+        <div class="l-head"><div class="l-close"><svg viewBox="0 0 24 24"><use href="#i-x"/></svg></div><div class="l-count">Pregunta 4, de unas 12</div></div>
+        <div class="l-meter" style="height:6px"><i style="width:33%;background:var(--rosa)"></i></div>
+        <div class="l-h" style="margin-top:18px">Escucha y elige qué significa</div>
+        <div class="l-audio" style="margin-top:12px"><div class="l-aud main"><svg><use href="#i-speaker"/></svg>Escuchar</div><div class="l-aud">Más lento</div></div>
+        <div style="margin-top:14px">
+          <div class="l-ans">¿Dónde está el baño?</div>
+          <div class="l-ans">¿Cuánto cuesta esto?</div>
+          <div class="l-ans">¿A qué hora abren?</div>
+          <div class="l-ans">¿Me puede ayudar?</div>
+        </div>
+        <div class="l-grow"></div>
+        <div class="l-btn quiet">No sé</div>
+        <div class="l-tiny" style="margin-top:8px">Elegir "No sé" está bien: nos ayuda a saber por dónde empezar. La evaluación termina sola cuando se pone difícil.</div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>1.3 Evaluación inicial.</b> 5 a 10 minutos, instrucciones en español, audio normal y lento. "No sé" está siempre a la vista y no cuenta en contra.</p></div>
+
+    <!-- 1.4 Resultado -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-body pb" style="padding-top:14px">
+        <div class="l-sign" style="--c:var(--l1)">
+          <div style="font-size:15px;font-weight:700">Tu línea es la azul</div>
+          <div class="stname" style="margin-top:6px">Empiezas en A1</div>
+          <p>Ya entiendes saludos y frases básicas. Primero vas a practicar cómo hablar de ti y de tu trabajo.</p>
+        </div>
+        <div class="l-line" style="--c:var(--l1);margin-top:18px">
+          <div class="l-st here"><span class="dot"></span><div class="l-tile sm" style="background:var(--ink)"><svg><use href="#i-hand"/></svg></div><div><div class="nm">Decir quién eres</div><span class="l-tag">Primera estación</span></div></div>
+          <div class="l-st ahead" style="margin-top:6px"><span class="dot"></span><div class="l-tile sm" style="background:var(--rule)"><svg><use href="#i-work"/></svg></div><div class="nm">Hablar de tu trabajo</div></div>
+          <div class="l-st ahead"><span class="dot"></span><div class="l-tile sm" style="background:var(--rule)"><svg><use href="#i-food"/></svg></div><div class="nm">Comprar en una tienda</div></div>
+        </div>
+        <div class="l-grow"></div>
+        <div class="l-btn go">Empezar mi primera sesión</div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>1.4 Resultado.</b> El nivel se anuncia como un letrero de línea, en palabras simples. Nada de calificaciones ni "reprobaste".</p></div>
+
+  </div>
+</div>
+
+<!-- ===================================================== 2 -->
+<div class="l-sec">
+  <h3>2. La sesión diaria</h3>
+  <p class="subtitle">Un botón para empezar y cuatro partes cortas que cambian de actividad. La mini línea de arriba siempre dice en qué parte vas.</p>
+  <div class="l-row">
+
+    <!-- 2.1 Inicio -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body">
+        <div class="l-head"><div class="l-word">Habla<i></i></div><div class="l-me">F</div></div>
+        <div class="l-greet">Buenas tardes, Fernando. Esta semana practicaste 4 días.</div>
+        <div class="l-line">
+          <div class="l-st done"><span class="dot"></span><div class="l-tile sm" style="background:var(--l2)"><svg><use href="#i-work"/></svg></div><div class="nm">Hablar de tu trabajo</div></div>
+          <div class="l-st here"><span class="dot"></span><div class="l-tile sm" style="background:var(--ink)"><svg><use href="#i-food"/></svg></div><div><div class="nm" style="font-size:22px">Pedir comida en un restaurante</div><span class="l-tag">Estás aquí</span></div></div>
+          <div class="l-panel">
+            <h4>Sesión de hoy <span>22 minutos</span></h4>
+            <ol class="l-steps"><li>Repasar 8 frases</li><li>Aprender 4 frases nuevas</li><li>Ordenar con el mesero</li><li>Ver tu resumen</li></ol>
+            <div class="l-btn go">Empezar sesión</div>
+          </div>
+          <div class="l-st ahead"><span class="dot"></span><div class="l-tile sm" style="background:var(--rule)"><svg><use href="#i-sign"/></svg></div><div class="nm">Pedir direcciones</div></div>
+        </div>
+      </div>
+      <div class="l-tabs"><div class="on"><svg><use href="#i-tab-today"/></svg>Hoy</div><div><svg><use href="#i-tab-review"/></svg>Repaso</div><div><svg><use href="#i-tab-map"/></svg>Mi línea</div></div>
+    </div></div>
+    <p class="l-cap"><b>2.1 Inicio.</b> La pantalla es tu línea: la estación anterior, "Estás aquí" y la sesión de hoy colgando de tu estación. Un solo botón rosa.</p></div>
+
+    <!-- 2.2 Repasar -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body pb">
+        <div class="l-head"><div class="l-close"><svg viewBox="0 0 24 24"><use href="#i-x"/></svg></div><div class="l-count">Frase 3 de 8</div></div>
+        <div class="l-mini"><span class="p now"></span><span class="seg"></span><span class="p"></span><span class="seg"></span><span class="p"></span><span class="seg"></span><span class="p"></span></div>
+        <div class="l-mini-lbl"><b>Repasar</b><span>Aprender</span><span>Conversar</span><span>Resumen</span></div>
+        <div class="l-flash" style="margin-top:22px">
+          <div class="l-tiny">¿Recuerdas qué significa?</div>
+          <div class="l-en" style="margin-top:8px">Can I see the menu, please?</div>
+          <div class="l-audio" style="margin-top:14px"><div class="l-aud main"><svg><use href="#i-speaker"/></svg>Escuchar</div><div class="l-aud">Más lento</div></div>
+          <hr>
+          <div class="l-es" style="margin-top:0">¿Puedo ver el menú, por favor?</div>
+        </div>
+        <div class="l-grow"></div>
+        <div class="l-tiny" style="margin-bottom:8px;color:var(--ink);font-weight:700">¿Qué tan fácil fue?</div>
+        <div class="l-rate">
+          <div class="r1">No me acordé<small>Vuelve mañana</small></div>
+          <div class="r2">Me costó<small>En 3 días</small></div>
+          <div class="r3">Fácil<small>En 7 días</small></div>
+        </div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>2.2 Repasar.</b> Primero intentas recordar; luego ves el significado. Tú dices qué tan fácil fue y la app decide cuándo volver a mostrarla.</p></div>
+
+    <!-- 2.3 Aprender -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body pb">
+        <div class="l-head"><div class="l-close"><svg viewBox="0 0 24 24"><use href="#i-x"/></svg></div><div class="l-count">Frase nueva 2 de 4</div></div>
+        <div class="l-mini"><span class="p ok"></span><span class="seg ok"></span><span class="p now"></span><span class="seg"></span><span class="p"></span><span class="seg"></span><span class="p"></span></div>
+        <div class="l-mini-lbl"><span>Repasar</span><b>Aprender</b><span>Conversar</span><span>Resumen</span></div>
+        <div style="margin-top:20px;display:flex;gap:12px;align-items:flex-start">
+          <div class="l-tile" style="background:var(--l2)"><svg><use href="#i-food"/></svg></div>
+          <div><div class="l-en">I'd like the chicken, please.</div><div class="l-es">Quisiera el pollo, por favor.</div></div>
+        </div>
+        <div class="l-audio" style="margin-top:14px"><div class="l-aud main"><svg><use href="#i-speaker"/></svg>Escuchar</div><div class="l-aud">Más lento</div></div>
+        <div class="l-note" style="margin-top:14px">"I'd like" es la forma amable de decir "I want". En un restaurante suena mucho mejor.</div>
+        <div style="margin-top:12px;font-size:13px;color:var(--ink-2)">Otro ejemplo</div>
+        <div style="font-size:15px;font-weight:700;margin-top:2px">I'd like a coffee, please.</div>
+        <div class="l-grow"></div>
+        <div class="l-btn line"><svg><use href="#i-mic"/></svg>Decirla en voz alta</div>
+        <div class="l-btn go">Siguiente frase</div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>2.3 Aprender.</b> 3 a 5 frases por sesión: la frase, su significado, una nota corta en amarillo y otro ejemplo. Puedes decirla en voz alta para practicar.</p></div>
+
+    <!-- 2.4 Conversar iPhone -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body pb">
+        <div class="l-head"><div class="l-close"><svg viewBox="0 0 24 24"><use href="#i-x"/></svg></div><div class="l-count">Con el mesero</div></div>
+        <div class="l-mini"><span class="p ok"></span><span class="seg ok"></span><span class="p ok"></span><span class="seg ok"></span><span class="p now"></span><span class="seg"></span><span class="p"></span></div>
+        <div class="l-mini-lbl"><span>Repasar</span><span>Aprender</span><b>Conversar</b><span>Resumen</span></div>
+        <div class="l-chat">
+          <div class="l-ai"><div class="l-tile" style="background:var(--l1)"><svg><use href="#i-waiter"/></svg></div><div><div class="txt">Hi! Welcome to Sam's Diner. Are you ready to order?</div><div class="acts"><span><svg><use href="#i-speaker"/></svg>Escuchar</span><span><svg><use href="#i-translate"/></svg>En español</span></div></div></div>
+          <div class="l-you">Yes. I want a hamburger and a coke.</div>
+          <div class="l-fix">Se entendió. Suena más amable así:<span class="say">I'd like a hamburger and a Coke, please.</span><span class="kept">Guardada en tu repaso</span></div>
+          <div class="l-ai"><div class="l-tile" style="background:var(--l1)"><svg><use href="#i-waiter"/></svg></div><div><div class="txt">Great choice! Would you like fries with that?</div><div class="acts"><span><svg><use href="#i-speaker"/></svg>Escuchar</span><span><svg><use href="#i-translate"/></svg>En español</span></div></div></div>
+        </div>
+        <div class="l-grow"></div>
+        <div style="font-size:12.5px;color:var(--ink-2);margin-bottom:6px">Si no sabes qué decir:</div>
+        <div class="l-sugg"><span>Yes, please.</span><span>No, thank you.</span><span>What do you recommend?</span></div>
+        <div class="l-input"><div class="f">Toca y dicta con el teclado</div><div class="send"><svg><use href="#i-send"/></svg></div></div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>2.4 Conversar, en tu iPhone.</b> El mesero es un pictograma. Tú hablas en negro; la corrección va en una placa verde y dice cómo suena mejor. Hablas con el dictado del teclado (gratis).</p></div>
+
+    <!-- 2.5 Conversar Android / compu -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body pb">
+        <div class="l-head"><div class="l-close"><svg viewBox="0 0 24 24"><use href="#i-x"/></svg></div><div class="l-count">Con el mesero</div></div>
+        <div class="l-mini"><span class="p ok"></span><span class="seg ok"></span><span class="p ok"></span><span class="seg ok"></span><span class="p now"></span><span class="seg"></span><span class="p"></span></div>
+        <div class="l-mini-lbl"><span>Repasar</span><span>Aprender</span><b>Conversar</b><span>Resumen</span></div>
+        <div class="l-chat">
+          <div class="l-ai"><div class="l-tile" style="background:var(--l1)"><svg><use href="#i-waiter"/></svg></div><div><div class="txt">Great choice! Would you like fries with that?</div><div class="acts"><span><svg><use href="#i-speaker"/></svg>Escuchar</span><span><svg><use href="#i-translate"/></svg>En español</span></div></div></div>
+          <div class="l-info" style="margin-left:49px">¡Buena elección! ¿Quiere papas fritas con eso?</div>
+        </div>
+        <div class="l-grow"></div>
+        <div class="l-live">Yes, please. And can I have…<small>Te estoy escuchando</small></div>
+        <div style="margin-top:26px"><div class="l-mic"><svg><use href="#i-mic"/></svg></div></div>
+        <div class="l-tiny" style="text-align:center;margin-top:20px">Mantén presionado mientras hablas</div>
+        <div style="text-align:center;margin-top:8px"><span class="l-link">Prefiero escribir</span></div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>2.5 Conversar, en Android o computadora.</b> Botón grande de micrófono con el reconocimiento gratis del navegador; ves en vivo lo que va entendiendo. Siempre puedes cambiar a escribir.</p></div>
+
+    <!-- 2.6 Resumen -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body pb">
+        <div class="l-mini" style="margin-top:6px"><span class="p ok"></span><span class="seg ok"></span><span class="p ok"></span><span class="seg ok"></span><span class="p ok"></span><span class="seg ok"></span><span class="p now"></span></div>
+        <div class="l-mini-lbl"><span>Repasar</span><span>Aprender</span><span>Conversar</span><b>Resumen</b></div>
+        <div class="l-title" style="margin-top:20px;font-size:34px">Sesión terminada</div>
+        <div class="l-t">22 minutos en Pedir comida en un restaurante.</div>
+        <div style="margin-top:16px;font-size:15px;font-weight:700">Lo que hiciste bien</div>
+        <ul class="l-chk">
+          <li><svg viewBox="0 0 24 24"><use href="#i-check"/></svg>Pediste tu comida completa</li>
+          <li><svg viewBox="0 0 24 24"><use href="#i-check"/></svg>Entendiste todas las preguntas del mesero</li>
+        </ul>
+        <div style="margin-top:14px;font-size:15px;font-weight:700">Para la próxima</div>
+        <div class="l-good" style="margin-top:6px">
+          <div class="l-pair"><s>I want</s><b>I'd like</b><span style="color:var(--ink-2)">suena más amable</span></div>
+          <div class="l-pair"><s>a coke</s><b>a Coke, please</b></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:13px">
+          <span>Pedir comida: 3 de 5 sesiones</span><span class="l-dots5"><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span>
+        </div>
+        <div class="l-tiny" style="margin-top:4px">Agregamos 3 frases a tu repaso.</div>
+        <div class="l-grow"></div>
+        <div class="l-btn go">Terminar</div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>2.6 Resumen.</b> Primero lo que salió bien, después como máximo 2 o 3 correcciones en verde. Tu avance en la meta, en puntos de estación.</p></div>
+
+  </div>
+</div>
+
+<!-- ===================================================== 3 -->
+<div class="l-sec">
+  <h3>3. Repaso y Mi línea</h3>
+  <p class="subtitle">Las otras dos pestañas de abajo. El avance se cuenta en cosas que ya puedes hacer.</p>
+  <div class="l-row">
+
+    <!-- 3.1 Repaso -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body">
+        <div class="l-title" style="font-size:28px">Repaso</div>
+        <div class="l-t" style="margin-top:4px">Las frases regresan justo antes de que se te olviden.</div>
+        <div class="l-panel" style="margin-top:14px">
+          <h4>Hoy toca repasar 8 frases <span>5 min</span></h4>
+          <div class="l-btn go" style="margin-top:12px">Repasar ahora</div>
+        </div>
+        <div class="l-facts" style="margin-top:4px"><div><b>5</b>mañana</div><div><b>23</b>esta semana</div><div><b>86</b>en total</div></div>
+        <div style="margin-top:14px;font-size:15px;font-weight:700">Las que más te cuestan</div>
+        <div class="l-list">
+          <div class="it"><div><b>Could you repeat that?</b><span>¿Podría repetir eso?</span></div><div class="spk"><svg><use href="#i-speaker"/></svg></div></div>
+          <div class="it"><div><b>Can I pay by card?</b><span>¿Puedo pagar con tarjeta?</span></div><div class="spk"><svg><use href="#i-speaker"/></svg></div></div>
+        </div>
+      </div>
+      <div class="l-tabs"><div><svg><use href="#i-tab-today"/></svg>Hoy</div><div class="on"><svg><use href="#i-tab-review"/></svg>Repaso</div><div><svg><use href="#i-tab-map"/></svg>Mi línea</div></div>
+    </div></div>
+    <p class="l-cap"><b>3.1 Repaso.</b> Para repasar cuando quieras, por ejemplo cinco minutos en la fila del súper. Funciona aunque la IA no esté disponible.</p></div>
+
+    <!-- 3.2 Mi línea -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body">
+        <div class="l-head"><div class="l-title" style="font-size:28px">Mi línea</div></div>
+        <div class="l-net">
+          <div class="l-lv" style="--c:var(--l0)"><div class="rail"></div><div class="cont">
+            <div class="lvname">Nivel 0 <em>Rosa</em><small>completo</small></div>
+            <div class="l-can"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg>Saludar, números y colores</div>
+          </div></div>
+          <div class="l-lv" style="--c:var(--l1)"><div class="rail"><span class="xfer"></span></div><div class="cont">
+            <div class="lvname">A1 <em>Azul</em><small>completo</small></div>
+            <div class="l-can"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg>Ya puedes decir quién eres y de dónde</div>
+            <div class="l-can"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg>Ya puedes comprar en una tienda</div>
+          </div></div>
+          <div class="l-lv" style="--c:var(--l2)"><div class="rail"><span class="xfer"></span></div><div class="cont">
+            <div class="lvname">A2 <em>Verde</em><small>3 de 8</small></div>
+            <div class="l-can"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg>Ya puedes presentarte en una junta</div>
+            <div class="l-can"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg>Ya puedes hablar de tu trabajo</div>
+            <div class="l-can now">Pedir comida en un restaurante</div>
+            <div class="l-can later">Pedir direcciones y 4 metas más</div>
+          </div></div>
+          <div class="l-lv" style="--c:var(--l3)"><div class="rail"><span class="xfer"></span></div><div class="cont">
+            <div class="lvname">B1 <em style="color:#000">Naranja</em><small>después</small></div>
+            <div class="l-can later">Llamadas, juntas en inglés, resolver problemas</div>
+          </div></div>
+        </div>
+        <div class="l-grow"></div>
+        <div class="l-facts"><div><b>86</b>frases</div><div><b>7 h</b>practicando</div><div><b>9 días</b>a tu revisión</div></div>
+      </div>
+      <div class="l-tabs"><div><svg><use href="#i-tab-today"/></svg>Hoy</div><div><svg><use href="#i-tab-review"/></svg>Repaso</div><div class="on"><svg><use href="#i-tab-map"/></svg>Mi línea</div></div>
+    </div></div>
+    <p class="l-cap"><b>3.2 Mi línea.</b> Todo tu camino como un mapa de metro: cada nivel es una línea y los círculos negros son los transbordos. Lo logrado se dice como "ya puedes…".</p></div>
+
+    <!-- 3.3 Meta lograda -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-body pb" style="padding-top:14px">
+        <div class="l-sign">
+          <div class="l-tile lg" style="background:#fff"><svg style="fill:var(--l2)"><use href="#i-food"/></svg></div>
+          <div class="stname">Pedir comida en un restaurante</div>
+          <p>Meta lograda. Ya puedes ordenar, preguntar qué te recomiendan y pedir la cuenta en inglés.</p>
+        </div>
+        <div class="l-track"><span class="fill"></span><span class="a"></span><span class="b"></span><span class="train"></span></div>
+        <div class="l-trlbl"><span>Pedir comida</span><b>Próxima: Pedir direcciones</b></div>
+        <div class="l-grow"></div>
+        <div class="l-t" style="margin-bottom:12px">En tu conversación final pediste plato y bebida, preguntaste por una recomendación y pediste la cuenta.</div>
+        <div class="l-btn go">Seguir a la próxima estación</div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>3.3 Meta lograda.</b> Se ve como el letrero de una estación. Es el único momento con animación: tu círculo amarillo avanza por la vía.</p></div>
+
+    <!-- 3.4 Casi -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-body pb" style="padding-top:14px">
+        <div class="l-sign grey">
+          <div class="l-tile lg" style="background:var(--ink)"><svg><use href="#i-food"/></svg></div>
+          <div class="stname">Casi lo tienes</div>
+          <p>Ordenaste y preguntaste por una recomendación. Faltó pedir la cuenta.</p>
+        </div>
+        <div style="margin-top:20px;font-size:15px;font-weight:700">Lo que sigue</div>
+        <div class="l-t" style="margin-top:4px">Una sesión más enfocada en pagar y pedir la cuenta. Después lo intentas otra vez; no hay límite de intentos.</div>
+        <div class="l-good" style="margin-top:12px"><b>The check, please.</b><br><span style="color:var(--ink-2)">La cuenta, por favor.</span></div>
+        <div class="l-grow"></div>
+        <div class="l-btn go">Hacer la sesión extra</div>
+        <div class="l-btn quiet">Ahora no</div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>3.4 Todavía no.</b> Si la conversación final no sale, se dice qué faltó y qué sigue, en gris y sin drama. Se puede intentar las veces que quieras.</p></div>
+
+  </div>
+</div>
+
+<!-- ===================================================== 4 -->
+<div class="l-sec">
+  <h3>4. Mi grupo y avisos</h3>
+  <p class="subtitle">Lo que solo ves tú como admin, y cómo se ven los avisos cuando algo falla.</p>
+  <div class="l-row">
+
+    <!-- 4.1 Mi grupo -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body pb">
+        <div class="l-title" style="font-size:28px">Mi grupo</div>
+        <div class="l-panel" style="margin-top:12px">
+          <h4>Gasto de IA en octubre</h4>
+          <div style="margin-top:8px;display:flex;align-items:baseline;gap:6px"><span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:34px;line-height:1">$1.12</span><span class="l-tiny">de tu tope de $5.00</span></div>
+          <div class="l-meter"><i></i><u></u></div>
+          <div class="l-tiny" style="margin-top:6px">A este ritmo cerrarías el mes en unos $3.40. La parte rayada es lo que falta por gastar si siguen igual.</div>
+        </div>
+        <div class="l-mem"><div class="av" style="background:var(--l2)">F</div><div><b>Fernando (tú)</b><span>A2, practicó hoy</span></div><div class="r">$0.41</div></div>
+        <div class="l-mem"><div class="av" style="background:var(--l1)">A</div><div><b>Ana</b><span>A1, hace 1 día</span></div><div class="r">$0.38</div></div>
+        <div class="l-mem"><div class="av" style="background:var(--l0)">L</div><div><b>Luis</b><span>Nivel 0, hace 3 días</span></div><div class="r">$0.33</div></div>
+        <div class="l-mem"><div class="av" style="background:var(--rule);color:var(--ink)">?</div><div><b>mama@correo.com</b><span>Invitación enviada, sin abrir</span></div><div class="r" style="color:var(--ink-2)">$0</div></div>
+        <div class="l-grow"></div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px">Invitar a alguien</div>
+        <div class="l-field"><div class="in">correo@ejemplo.com</div><div class="go">Invitar</div></div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>4.1 Mi grupo (solo admin).</b> Invitas por correo, ves quién practica y cuánto va gastando la IA contra tu tope de $5. El color de cada persona es su línea.</p></div>
+
+    <!-- 4.2 Avisos -->
+    <div class="l-shot"><div class="l-ph"><div class="l-scr"><div class="l-notch"></div>
+      <div class="l-stat"><span>9:41</span><span>100%</span></div>
+      <div class="l-body pb">
+        <div class="l-h" style="margin:4px 0 12px">Así se ven los avisos</div>
+        <div class="l-alert"><div class="ic"><svg><use href="#i-nowifi"/></svg></div><div><b>Sin conexión a internet</b>Tu avance de hoy está guardado en el teléfono.<br><span class="act">Reintentar</span></div></div>
+        <div class="l-alert"><div class="ic"><svg><use href="#i-clock"/></svg></div><div><b>La IA no respondió</b>Lo intentamos dos veces. Prueba de nuevo en un minuto.<br><span class="act">Intentar de nuevo</span></div></div>
+        <div class="l-alert blue"><div class="ic"><svg><use href="#i-mic"/></svg></div><div><b>Falta permiso para el micrófono</b>Toca el candado junto a la dirección de la página y activa "Micrófono".<br><span class="act">Escribir mientras tanto</span></div></div>
+        <div class="l-alert yellow"><div class="ic"><svg><use href="#i-wallet"/></svg></div><div><b>Se terminó el presupuesto de IA de octubre</b>Vuelve el 1 de noviembre. El repaso sigue disponible.<br><span class="act">Ir a repasar</span></div></div>
+      </div>
+    </div></div>
+    <p class="l-cap"><b>4.2 Avisos.</b> Placas de color como en la señalética: dicen qué pasó y qué sí puedes hacer. Sin códigos ni disculpas.</p></div>
+
+  </div>
+</div>
+
+<!-- ===================================================== 5 -->
+<div class="l-sec">
+  <h3>5. En computadora</h3>
+  <p class="subtitle">La misma app en pantalla ancha: tu línea completa a la izquierda, la sesión de hoy al centro y el repaso a la derecha.</p>
+  <div class="l-lap"><div class="l-lap-scr">
+    <div class="l-topbar">
+      <div class="l-word" style="font-size:28px">Habla<i></i></div>
+      <div class="nav"><span class="on">Hoy</span><span>Repaso</span><span>Mi línea</span><span>Mi grupo</span></div>
+      <div class="l-me">F</div>
+    </div>
+    <div class="l-desk">
+      <div class="col-line">
+        <div style="font-size:13px;color:var(--ink-2)">Línea verde, nivel A2</div>
+        <div class="l-line" style="margin-top:12px">
+          <div class="l-st done"><span class="dot"></span><div class="l-tile sm" style="background:var(--l2)"><svg><use href="#i-hand"/></svg></div><div class="nm">Presentarte en una junta</div></div>
+          <div class="l-st done"><span class="dot"></span><div class="l-tile sm" style="background:var(--l2)"><svg><use href="#i-work"/></svg></div><div class="nm">Hablar de tu trabajo</div></div>
+          <div class="l-st here" style="min-height:58px"><span class="dot"></span><div class="l-tile sm" style="background:var(--ink)"><svg><use href="#i-food"/></svg></div><div><div class="nm">Pedir comida</div><span class="l-tag">Estás aquí</span></div></div>
+          <div class="l-st ahead"><span class="dot"></span><div class="l-tile sm" style="background:var(--rule)"><svg><use href="#i-sign"/></svg></div><div class="nm">Pedir direcciones</div></div>
+          <div class="l-st ahead"><span class="dot"></span><div class="l-tile sm" style="background:var(--rule)"><svg><use href="#i-bed"/></svg></div><div class="nm">Reservar un hotel</div></div>
+          <div class="l-st ahead"><span class="dot"></span><div class="l-tile sm" style="background:var(--rule)"><svg><use href="#i-plane"/></svg></div><div class="nm">En el aeropuerto</div></div>
+          <div class="l-st ahead"><span class="dot"></span><div class="l-tile sm" style="background:var(--rule)"><svg><use href="#i-phone"/></svg></div><div class="nm">Una llamada corta</div></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:14px;color:var(--ink-2)">Buenas tardes, Fernando. Esta semana practicaste 4 días.</div>
+        <div class="l-bigst" style="margin-top:14px">Pedir comida en un restaurante</div>
+        <div class="l-t" style="margin-top:8px">Sesión de hoy, 22 minutos. Llevas 2 de 5 sesiones de esta meta.</div>
+        <div class="l-hsteps">
+          <div>Repasar<span>8 frases</span></div><div>Aprender<span>4 frases nuevas</span></div><div>Conversar<span>con el mesero</span></div><div>Resumen<span>lo que salió bien</span></div>
+        </div>
+        <div class="l-btn go" style="width:240px">Empezar sesión</div>
+        <div style="display:flex;gap:40px;margin-top:34px;padding-top:18px;border-top:2px solid var(--concrete)">
+          <div><div style="font-size:14px;font-weight:700;margin-bottom:8px">Esta semana</div><div style="display:flex;gap:6px"><i style="width:22px;height:22px;border-radius:5px;background:var(--l2);display:inline-block"></i><i style="width:22px;height:22px;border-radius:5px;background:var(--l2);display:inline-block"></i><i style="width:22px;height:22px;border-radius:5px;background:var(--concrete);display:inline-block"></i><i style="width:22px;height:22px;border-radius:5px;background:var(--l2);display:inline-block"></i><i style="width:22px;height:22px;border-radius:5px;background:var(--l2);display:inline-block"></i><i style="width:22px;height:22px;border-radius:5px;background:var(--concrete);display:inline-block"></i><i style="width:22px;height:22px;border-radius:5px;background:var(--concrete);display:inline-block"></i></div><div class="l-tiny" style="margin-top:6px">4 días practicados</div></div>
+          <div><div style="font-size:14px;font-weight:700;margin-bottom:8px">Tu próxima revisión de nivel</div><div style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:30px;line-height:1">En 9 días</div><div class="l-tiny" style="margin-top:6px">Una conversación corta para ver tu avance</div></div>
+        </div>
+      </div>
+      <div class="col-side">
+        <div class="l-panel" style="margin:0">
+          <h4>Repaso <span>5 min</span></h4>
+          <div class="l-t" style="margin-top:4px">8 frases para hoy.</div>
+          <div class="l-btn line" style="margin-top:10px;min-height:44px">Repasar ahora</div>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">Las que más te cuestan</div>
+          <div class="l-list">
+            <div class="it"><div><b>Could you repeat that?</b><span>¿Podría repetir eso?</span></div></div>
+            <div class="it"><div><b>Can I pay by card?</b><span>¿Puedo pagar con tarjeta?</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><div class="l-lap-base"></div></div>
+</div>
+
+<!-- ===================================================== 6 -->
+<div class="l-sec">
+  <h3>6. El sistema</h3>
+  <p class="subtitle">Para que al programarla quede igual. Se arma con componentes de shadcn-vue (Button, Card, Progress, Dialog, Sonner) personalizados con estos tokens, y un set propio de pictogramas en SVG.</p>
+  <div class="l-tokens">
+    <div class="l-tok"><h4>Colores base</h4>
+      <div class="l-sw"><i style="background:#FFFFFF"></i>Blanco andén <code>#FFFFFF</code></div>
+      <div class="l-sw"><i style="background:#EEF0F2"></i>Gris concreto, paneles <code>#EEF0F2</code></div>
+      <div class="l-sw"><i style="background:#000000"></i>Negro señal, texto <code>#000000</code></div>
+      <div class="l-sw"><i style="background:#5B616B"></i>Gris texto secundario <code>#5B616B</code></div>
+      <div class="l-sw"><i style="background:#E4007C"></i>Rosa mexicano, la acción <code>#E4007C</code></div>
+      <div class="l-sw"><i style="background:#FFD100"></i>Amarillo, "Estás aquí" <code>#FFD100</code></div>
+    </div>
+    <div class="l-tok"><h4>Líneas y placas</h4>
+      <div class="l-sw"><i style="background:#E4007C"></i>Nivel 0, rosa <code>#E4007C</code></div>
+      <div class="l-sw"><i style="background:#0057B8"></i>A1, azul (también información) <code>#0057B8</code></div>
+      <div class="l-sw"><i style="background:#00965E"></i>A2, verde (también correcciones) <code>#00965E</code></div>
+      <div class="l-sw"><i style="background:#E87722"></i>B1, naranja <code>#E87722</code></div>
+      <p style="margin-top:6px">Placas: verde "así se dice", azul información, amarillo aviso importante. Nunca rojo.</p>
+    </div>
+    <div class="l-tok"><h4>Letra</h4>
+      <p><span style="font-family:'Barlow Condensed';font-weight:700;font-size:1.6rem;color:var(--text-primary);line-height:1">Pedir comida</span><br>Barlow Condensed 600 y 700: nombres de estación, títulos y números grandes.</p>
+      <p style="margin-top:.6rem"><span style="font-family:'Atkinson Hyperlegible';font-weight:700;font-size:1.05rem;color:var(--text-primary)">I'd like the chicken, please.</span><br>Atkinson Hyperlegible 400 y 700: todo lo demás. Distingue bien letras parecidas (I, l, 1), clave al leer inglés.</p>
+      <p style="margin-top:.6rem">Escala en px: 12, 14, 16, 19, 22, 30 y 44.</p>
+    </div>
+    <div class="l-tok"><h4>Pictogramas</h4>
+      <div class="l-pictos">
+        <div><span class="l-tile sm" style="background:var(--ink)"><svg><use href="#i-hand"/></svg></span>Presentarte</div>
+        <div><span class="l-tile sm" style="background:var(--ink)"><svg><use href="#i-work"/></svg></span>Trabajo</div>
+        <div><span class="l-tile sm" style="background:var(--ink)"><svg><use href="#i-food"/></svg></span>Comida</div>
+        <div><span class="l-tile sm" style="background:var(--ink)"><svg><use href="#i-sign"/></svg></span>Direcciones</div>
+        <div><span class="l-tile sm" style="background:var(--ink)"><svg><use href="#i-bed"/></svg></span>Hotel</div>
+        <div><span class="l-tile sm" style="background:var(--ink)"><svg><use href="#i-plane"/></svg></span>Aeropuerto</div>
+        <div><span class="l-tile sm" style="background:var(--ink)"><svg><use href="#i-phone"/></svg></span>Llamada</div>
+        <div><span class="l-tile sm" style="background:var(--l1)"><svg><use href="#i-waiter"/></svg></span>Personaje</div>
+      </div>
+      <p style="margin-top:8px">Sólidos, geométricos, sobre un cuadro de color. Uno por cada meta del temario.</p>
+    </div>
+    <div class="l-tok"><h4>Botones y estaciones</h4>
+      <div class="l-comp">
+        <div class="l-btn go">Acción principal</div>
+        <div class="l-btn line" style="margin-top:0">Acción secundaria</div>
+        <div class="l-btn quiet" style="margin-top:0">Acción discreta</div>
+        <div style="display:flex;gap:16px;align-items:center;font-size:12px;margin-top:4px">
+          <span style="display:flex;align-items:center;gap:5px"><i style="width:16px;height:16px;border-radius:50%;background:var(--l2);display:inline-block"></i>Lograda</span>
+          <span style="display:flex;align-items:center;gap:5px"><i style="width:20px;height:20px;border-radius:50%;background:var(--yellow);border:5px solid #000;box-sizing:border-box;display:inline-block"></i>Estás aquí</span>
+          <span style="display:flex;align-items:center;gap:5px"><i style="width:16px;height:16px;border-radius:50%;border:4px solid var(--l2);box-sizing:border-box;display:inline-block"></i>Próxima</span>
+        </div>
+      </div>
+    </div>
+    <div class="l-tok"><h4>Reglas</h4>
+      <p>Alineado a la izquierda, como un letrero.<br>Una sola acción rosa por pantalla.<br>Números solo donde hay un orden real: los pasos de la sesión.<br>Esquinas: 7 a 9px pictogramas, 12px botones, 14px paneles.<br>Sin sombras, sin degradados, sin emojis.<br>Una sola animación: el avance entre estaciones (se apaga si el teléfono pide menos movimiento).<br>Botones de 52px de alto; contraste AA en todo.</p>
+    </div>
+  </div>
+</div>
+
+</div>
+
+</body>
+</html>
