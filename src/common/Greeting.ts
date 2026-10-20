@@ -6,6 +6,8 @@ export function getGreeting(now: Date, name: string): string {
   if (hour >= 5 && hour < 12) greeting = "Buenos días";
   else if (hour >= 12 && hour < 19) greeting = "Buenas tardes";
 
-  const firstName = name.trim().split(/\s+/)[0];
+  // Google a veces guarda el nombre en minúsculas ("fernando Sotelo")
+  const word = name.trim().split(/\s+/)[0];
+  const firstName = word.charAt(0).toUpperCase() + word.slice(1);
   return firstName ? `${greeting}, ${firstName}.` : `${greeting}.`;
 }

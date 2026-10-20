@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { RouterLink, RouterView } from "vue-router";
+import { RouterLink, RouterView, useRouter } from "vue-router";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getLevel } from "@/curriculum/levels";
 import { getUnit } from "@/curriculum/units";
 import { useAuthStore } from "@/stores/auth";
@@ -8,6 +14,12 @@ import { useAuthStore } from "@/stores/auth";
 // Celular: "Habla" + avatar arriba y pestañas abajo (diseño: .l-word, .l-me, .l-tabs).
 // Computadora (lg): barra superior con la navegación (diseño: .l-topbar).
 const auth = useAuthStore();
+const router = useRouter();
+
+async function signOut(): Promise<void> {
+  await auth.signOut();
+  await router.replace({ name: "bienvenida" });
+}
 
 const initial = computed(
   () => auth.profile?.name.trim().charAt(0).toUpperCase() || "?",
@@ -52,12 +64,20 @@ const tabs = [
           {{ tab.label }}
         </RouterLink>
       </nav>
-      <div
-        class="ml-auto grid size-[34px] place-items-center rounded-[8px] text-base font-bold lg:ml-0"
-        :class="avatarClass"
-      >
-        {{ initial }}
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          class="ml-auto grid size-[34px] place-items-center rounded-[8px] text-base font-bold lg:ml-0"
+          :class="avatarClass"
+          aria-label="Tu cuenta"
+        >
+          {{ initial }}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" class="min-w-40">
+          <DropdownMenuItem class="text-base font-bold" @select="signOut">
+            Cerrar sesión
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </header>
 
     <main class="mx-auto w-full max-w-[1040px] flex-1 px-5 pb-6">

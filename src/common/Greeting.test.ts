@@ -16,6 +16,11 @@ describe("getGreeting", () => {
     );
     expect(getGreeting(at(3), "Ana")).toBe("Buenas noches, Ana.");
   });
+  it("pone mayúscula aunque Google guarde el nombre en minúsculas", () => {
+    expect(getGreeting(at(9), "fernando Sotelo romero")).toBe(
+      "Buenos días, Fernando.",
+    );
+  });
   it("sin nombre solo saluda", () => {
     expect(getGreeting(at(15), "")).toBe("Buenas tardes.");
   });

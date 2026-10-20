@@ -1,9 +1,11 @@
 import type { VueWrapper } from "@vue/test-utils";
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { useAuthStore } from "@/stores/auth";
 import MiLineaPage from "./MiLineaPage.vue";
+
+vi.mock("@/lib/supabase", () => ({ supabase: { auth: {} } }));
 
 function mountAt(unitId: string): VueWrapper {
   const pinia = createPinia();

@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore } from "@/stores/auth";
 import HoyPage from "./HoyPage.vue";
 
+vi.mock("@/lib/supabase", () => ({ supabase: { auth: {} } }));
+
 describe("HoyPage", () => {
   beforeEach(() => {
     vi.useFakeTimers();
