@@ -1,0 +1,10 @@
+// Cloudflare Workers con archivos estáticos (gratis): publica dist/ y regresa index.html
+// en cualquier ruta, para que el router de Vue resuelva /mi-linea, /motivo, etc.
+{
+  "name": "habla",
+  "compatibility_date": "2026-10-19",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

@@ -58,7 +58,7 @@ const tabs = [
           v-for="tab in tabs"
           :key="tab.name"
           :to="{ name: tab.name }"
-          active-class="text-ink border-b-4 border-rosa"
+          exact-active-class="text-ink border-b-4 border-rosa"
           class="pb-1"
         >
           {{ tab.label }}
@@ -92,7 +92,7 @@ const tabs = [
         v-for="tab in tabs"
         :key="tab.name"
         :to="{ name: tab.name }"
-        active-class="is-active"
+        exact-active-class="is-active"
         class="flex flex-col items-center gap-[3px] text-ink-2 [&.is-active]:text-ink [&.is-active_svg]:fill-rosa"
       >
         <svg class="size-[22px] fill-ink-2">
