@@ -40,4 +40,16 @@ describe("guard del router", () => {
     await go("/mi-linea");
     expect(router.currentRoute.value.name).toBe("mi-linea");
   });
+  it("sin motivo manda a motivo, incluso desde bienvenida", async () => {
+    login(null);
+    await go("/mi-linea");
+    expect(router.currentRoute.value.name).toBe("motivo");
+    await go("/bienvenida");
+    expect(router.currentRoute.value.name).toBe("motivo");
+  });
+  it("con motivo, motivo manda a hoy", async () => {
+    login("viajes");
+    await go("/motivo");
+    expect(router.currentRoute.value.name).toBe("hoy");
+  });
 });

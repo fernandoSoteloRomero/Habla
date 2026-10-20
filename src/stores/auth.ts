@@ -2,7 +2,10 @@ import type { Session } from "@supabase/supabase-js";
 import { defineStore } from "pinia";
 import { supabase } from "@/lib/supabase";
 import ProfileService from "@/Services/Profile/ProfileService";
-import type { Profile } from "@/Services/interfaces/Profile/ProfileInterface";
+import type {
+  Motive,
+  Profile,
+} from "@/Services/interfaces/Profile/ProfileInterface";
 
 // Aviso que se muestra en la Bienvenida cuando no se pudo entrar
 type LoginError = "" | "sin-invitacion" | "sin-perfil" | "sin-conexion";
@@ -68,6 +71,13 @@ export const useAuthStore = defineStore("auth", {
           redirectTo: window.location.origin + import.meta.env.BASE_URL,
         },
       });
+    },
+
+    // Lanza el error si no se guardó, para que la pantalla avise
+    async saveMotive(motive: Motive): Promise<void> {
+      if (!this.profile) return;
+      await ProfileService.SaveMotive(this.profile.user_id, motive);
+      this.profile.motive = motive;
     },
 
     async signOut(): Promise<void> {

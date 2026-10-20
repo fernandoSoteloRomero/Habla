@@ -27,6 +27,11 @@ const router = createRouter({
       component: () => import("@/Views/Bienvenida/BienvenidaPage.vue"),
     },
     {
+      path: "/motivo",
+      name: "motivo",
+      component: () => import("@/Views/Motivo/MotivoPage.vue"),
+    },
+    {
       path: "/:pathMatch(.*)*",
       component: () => import("@/Views/404/NotFoundPage.vue"),
     },
@@ -44,8 +49,16 @@ router.beforeEach((to) => {
     return;
   }
 
-  // Ya entró: de la Bienvenida lo regresa a Hoy
-  if (to.name === "bienvenida") {
+  // Primer uso: hasta que conteste su motivo, solo ve esa pantalla
+  if (!authStore.hasMotive) {
+    if (to.name !== "motivo") {
+      return { name: "motivo" };
+    }
+    return;
+  }
+
+  // Ya entró y ya contestó: de la Bienvenida o del motivo lo regresa a Hoy
+  if (to.name === "bienvenida" || to.name === "motivo") {
     return { name: "hoy" };
   }
 });
