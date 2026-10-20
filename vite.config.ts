@@ -10,10 +10,16 @@ export default defineConfig({
   plugins: [
     vue(),
     tailwindcss(),
-    // App instalable (PWA): se actualiza sola cuando hay una versión nueva
+    // App instalable (PWA): se actualiza sola cuando hay una versión nueva.
+    // El registro se hace en main.ts (registerSW), que recarga la página al actualizar.
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: false,
       includeAssets: ["favicon.ico", "apple-touch-icon-180x180.png"],
+      // Las fuentes también se guardan, para que la app se vea igual sin conexión
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,woff2,png,ico,svg}"],
+      },
       manifest: {
         name: "Habla",
         short_name: "Habla",

@@ -63,4 +63,18 @@ router.beforeEach((to) => {
   }
 });
 
+// Si se publicó una versión nueva mientras la app estaba abierta, los archivos de las
+// pantallas cambian de nombre y el import() falla: se recarga una vez en la ruta destino.
+router.onError((error, to) => {
+  const isChunkError =
+    /dynamically imported module|Importing a module script failed|error loading dynamically imported module/i.test(
+      String(error?.message),
+    );
+  if (!isChunkError) return;
+  const key = `recargado:${to.fullPath}`;
+  if (sessionStorage.getItem(key)) return; // ya se intentó: no recargar en ciclo
+  sessionStorage.setItem(key, "1");
+  window.location.assign(to.fullPath);
+});
+
 export default router;

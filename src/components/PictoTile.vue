@@ -35,6 +35,11 @@ const backgrounds = {
 const tileClass = computed(
   () => `${tileSizes[props.size]} ${backgrounds[props.bg]}`,
 );
+
+// El naranja de B1 solo lleva negro encima (blanco sobre naranja no da el contraste AA)
+const iconClass = computed(
+  () => `${iconSizes[props.size]} ${props.bg === "l3" ? "fill-ink" : "fill-white"}`,
+);
 </script>
 
 <template>
@@ -43,7 +48,7 @@ const tileClass = computed(
     :class="tileClass"
     aria-hidden="true"
   >
-    <svg class="fill-white" :class="iconSizes[size]">
+    <svg :class="iconClass">
       <use :href="`#i-${name}`" />
     </svg>
   </span>

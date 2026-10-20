@@ -3,7 +3,7 @@
 -- Si algo falla, el error dice "FALLO: …" y se detiene antes de la última línea.
 begin;
 
-insert into public.invites (email) values ('ana.lopez@gmail.com');
+insert into public.invites (email) values ('ana.lopez@gmail.com'), ('beto@gmail.com');
 
 do $$
 begin
@@ -29,6 +29,14 @@ begin
   assert (select level || '/' || current_unit_id from public.profiles where user_id = '00000000-0000-4000-8000-00000000000a') = 'L0/l0-saludar', 'FALLO: nivel inicial';
   assert (select motive from public.profiles where user_id = '00000000-0000-4000-8000-00000000000a') is null, 'FALLO: motivo inicial';
   assert (select accepted_at from public.invites where email = 'ana.lopez@gmail.com') is not null, 'FALLO: invitación sin marcar';
+  -- Segunda barrera: aunque el hook estuviera apagado, la base no crea cuentas sin invitación
+  begin
+    insert into auth.users (id, email, aud, role) values
+      ('00000000-0000-4000-8000-00000000000c', 'intruso@gmail.com', 'authenticated', 'authenticated');
+    raise exception 'FALLO: se creó una cuenta sin invitación';
+  exception when raise_exception then
+    if sqlerrm like 'FALLO:%' then raise; end if;
+  end;
 end $$;
 
 set local role authenticated;
@@ -48,6 +56,27 @@ begin
     raise exception 'FALLO: Ana pudo cambiar su estación'; exception when insufficient_privilege then null; end;
   begin perform 1 from public.invites;
     raise exception 'FALLO: Ana puede leer las invitaciones'; exception when insufficient_privilege then null; end;
+  begin insert into public.profiles (user_id, name) values ('00000000-0000-4000-8000-00000000000d', 'X');
+    raise exception 'FALLO: Ana pudo insertar un perfil'; exception when insufficient_privilege then null; end;
+  begin delete from public.profiles where user_id = '00000000-0000-4000-8000-00000000000b';
+    raise exception 'FALLO: Ana pudo borrar un perfil'; exception when insufficient_privilege then null; end;
+  begin perform public.hook_before_user_created('{"user":{"email":"ana.lopez@gmail.com"}}'::jsonb);
+    raise exception 'FALLO: Ana puede preguntarle al hook quién está invitado'; exception when insufficient_privilege then null; end;
+end $$;
+
+-- Sin sesión (anon): no ve ni toca nada
+reset role;
+set local role anon;
+do $$
+begin
+  begin perform 1 from public.profiles;
+    raise exception 'FALLO: anon puede leer perfiles'; exception when insufficient_privilege then null; end;
+  begin perform 1 from public.invites;
+    raise exception 'FALLO: anon puede leer invitaciones'; exception when insufficient_privilege then null; end;
+  begin insert into public.invites (email) values ('colado@gmail.com');
+    raise exception 'FALLO: anon pudo invitarse'; exception when insufficient_privilege then null; end;
+  begin perform public.hook_before_user_created('{"user":{"email":"x@gmail.com"}}'::jsonb);
+    raise exception 'FALLO: anon puede llamar al hook'; exception when insufficient_privilege then null; end;
 end $$;
 
 reset role;

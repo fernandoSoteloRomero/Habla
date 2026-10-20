@@ -5,6 +5,7 @@
 //   npm run db:sql -- supabase/tests/base_checks.sql     corre un archivo SQL
 //   npm run db:sql -- --query "select 1"                 corre una consulta
 //   npm run db:push                                      aplica las migraciones pendientes
+//   npm run db:check-auth                                revisa la configuración de Auth
 //
 // Necesita SUPABASE_ACCESS_TOKEN (sbp_...) en .env.local (git lo ignora) o en el entorno.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -68,9 +69,17 @@ async function push() {
       (r) => r.version,
     ),
   );
-  const files = readdirSync("supabase/migrations")
-    .filter((f) => /^\d+_.+\.sql$/.test(f))
-    .sort();
+  const all = readdirSync("supabase/migrations").filter((f) =>
+    f.endsWith(".sql"),
+  );
+  // El nombre va dentro del SQL del historial: solo minúsculas, números y "_"
+  const badNames = all.filter((f) => !/^\d{14}_[a-z0-9_]+\.sql$/.test(f));
+  if (badNames.length > 0) {
+    throw new Error(
+      `Nombre de migración inválido (usa AAAAMMDDHHMMSS_nombre_en_minusculas.sql): ${badNames.join(", ")}`,
+    );
+  }
+  const files = all.sort();
   const pending = files.filter((f) => !applied.has(f.split("_")[0]));
   if (pending.length === 0) {
     console.log("No hay migraciones pendientes.");
@@ -93,10 +102,39 @@ commit;`);
   }
 }
 
+// Revisa que la configuración de Auth en Supabase siga como la necesita Habla.
+// Solo imprime valores que no son secretos.
+const SITE_URL = "https://habla.oloferolo.workers.dev";
+async function checkAuth() {
+  const response = await fetch(
+    `https://api.supabase.com/v1/projects/${readProjectRef()}/config/auth`,
+    { headers: { Authorization: `Bearer ${readToken()}` } },
+  );
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const c = await response.json();
+  const allowList = String(c.uri_allow_list ?? "").split(",");
+  const checks = [
+    ["Google activado", c.external_google_enabled === true],
+    ["Email desactivado", c.external_email_enabled === false],
+    ["Hook de invitados activado", c.hook_before_user_created_enabled === true],
+    [
+      "Hook apunta a public.hook_before_user_created",
+      c.hook_before_user_created_uri ===
+        "pg-functions://postgres/public/hook_before_user_created",
+    ],
+    [`Site URL es ${SITE_URL}`, c.site_url === SITE_URL],
+    [`Redirect URLs incluyen ${SITE_URL}/**`, allowList.includes(`${SITE_URL}/**`)],
+  ];
+  for (const [label, ok] of checks) console.log(`${ok ? "OK   " : "FALLA"} ${label}`);
+  if (checks.some(([, ok]) => !ok)) process.exitCode = 1;
+}
+
 const [command, ...args] = process.argv.slice(2);
 try {
   if (command === "push") {
     await push();
+  } else if (command === "check-auth") {
+    await checkAuth();
   } else if (command === "sql" && args[0] === "--query" && args[1]) {
     console.table(await runSql(args[1]));
   } else if (command === "sql" && args[0]) {
@@ -105,6 +143,7 @@ try {
     console.error('Uso: npm run db:sql -- <archivo.sql>');
     console.error('     npm run db:sql -- --query "select 1"');
     console.error("     npm run db:push");
+    console.error("     npm run db:check-auth");
     process.exitCode = 1;
   }
 } catch (error) {

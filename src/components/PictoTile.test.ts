@@ -21,4 +21,9 @@ describe("PictoTile", () => {
       expect.arrayContaining(["size-10", "rounded-[9px]", "bg-ink"]),
     );
   });
+  it("sobre naranja (B1) el pictograma va en negro, no en blanco", () => {
+    const w = mount(PictoTile, { props: { name: "plane", bg: "l3" } });
+    expect(w.find("svg").classes()).toContain("fill-ink");
+    expect(w.find("svg").classes()).not.toContain("fill-white");
+  });
 });

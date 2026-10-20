@@ -1,3 +1,4 @@
+import { AuthRetryableFetchError } from "@supabase/supabase-js";
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { supabase } from "@/lib/supabase";
@@ -6,7 +7,12 @@ import { useAuthStore } from "./auth";
 
 vi.mock("@/lib/supabase", () => ({
   supabase: {
-    auth: { getSession: vi.fn(), signInWithOAuth: vi.fn(), signOut: vi.fn() },
+    auth: {
+      getSession: vi.fn(),
+      signInWithOAuth: vi.fn(),
+      signOut: vi.fn(),
+      onAuthStateChange: vi.fn(),
+    },
   },
 }));
 vi.mock("@/Services/Profile/ProfileService", () => ({
@@ -27,6 +33,7 @@ describe("auth store", () => {
   beforeEach(() => setActivePinia(createPinia()));
   afterEach(() => {
     vi.resetAllMocks();
+    vi.restoreAllMocks();
     window.history.replaceState(null, "", "/");
   });
 
@@ -98,5 +105,85 @@ describe("auth store", () => {
     expect(auth.isAuthenticated).toBe(false);
     expect(auth.loginError).toBe("sin-conexion");
     expect(auth.loaded).toBe(true);
+  });
+
+  it("con el token vencido y sin internet marca sin-conexion", async () => {
+    // supabase-js no puede renovar el token sin red: regresa este error y deja la sesión guardada
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: null },
+      error: new AuthRetryableFetchError("Failed to fetch", 0),
+    } as never);
+    const auth = useAuthStore();
+    await auth.initialize();
+    expect(auth.isAuthenticated).toBe(false);
+    expect(auth.loginError).toBe("sin-conexion");
+  });
+  it("si el teléfono no tiene internet al abrir marca sin-conexion", async () => {
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: null },
+      error: null,
+    } as never);
+    const auth = useAuthStore();
+    await auth.initialize();
+    expect(auth.loginError).toBe("sin-conexion");
+  });
+  it("si getSession truena, termina de cargar y avisa", async () => {
+    vi.mocked(supabase.auth.getSession).mockRejectedValue(
+      new Error("lock timeout"),
+    );
+    const auth = useAuthStore();
+    await auth.initialize();
+    expect(auth.loaded).toBe(true);
+    expect(auth.isAuthenticated).toBe(false);
+    expect(auth.loginError).toBe("sin-conexion");
+  });
+  it("también detecta el error de la invitación en la query (?error=)", async () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/?error=access_denied&error_description=Ese%20correo%20no%20tiene%20invitaci%C3%B3n.",
+    );
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: null },
+      error: null,
+    } as never);
+    const auth = useAuthStore();
+    await auth.initialize();
+    expect(auth.loginError).toBe("sin-invitacion");
+  });
+  it("otro error de Google (por ejemplo, cancelar) marca login-fallido", async () => {
+    window.location.hash =
+      "#error=access_denied&error_description=The+user+denied+access";
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: null },
+      error: null,
+    } as never);
+    const auth = useAuthStore();
+    await auth.initialize();
+    expect(auth.loginError).toBe("login-fallido");
+  });
+  it("si la sesión se cierra en otro lado, limpia el store y avisa", () => {
+    let listener: (event: string) => void = () => {};
+    vi.mocked(supabase.auth.onAuthStateChange).mockImplementation(((
+      callback: (event: string) => void,
+    ) => {
+      listener = callback;
+      return { data: { subscription: { unsubscribe: vi.fn() } } };
+    }) as never);
+    const auth = useAuthStore();
+    auth.session = session as never;
+    auth.profile = profile as never;
+    const onSignedOut = vi.fn();
+    auth.listenForSignOut(onSignedOut);
+    listener("SIGNED_OUT");
+    expect(auth.session).toBeNull();
+    expect(auth.profile).toBeNull();
+    expect(onSignedOut).toHaveBeenCalled();
+  });
+  it("cerrar sesión solo cierra este dispositivo", async () => {
+    vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null } as never);
+    await useAuthStore().signOut();
+    expect(supabase.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
   });
 });

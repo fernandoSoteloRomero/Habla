@@ -73,7 +73,10 @@ const tabs = [
           {{ initial }}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" class="min-w-40">
-          <DropdownMenuItem class="text-base font-bold" @select="signOut">
+          <DropdownMenuItem
+            class="min-h-[52px] px-3 text-base font-bold"
+            @select="signOut"
+          >
             Cerrar sesión
           </DropdownMenuItem>
         </DropdownMenuContent>

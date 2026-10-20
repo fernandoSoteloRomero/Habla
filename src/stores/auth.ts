@@ -1,4 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { defineStore } from "pinia";
 import { supabase } from "@/lib/supabase";
 import ProfileService from "@/Services/Profile/ProfileService";
@@ -8,7 +9,12 @@ import type {
 } from "@/Services/interfaces/Profile/ProfileInterface";
 
 // Aviso que se muestra en la Bienvenida cuando no se pudo entrar
-type LoginError = "" | "sin-invitacion" | "sin-perfil" | "sin-conexion";
+type LoginError =
+  | ""
+  | "sin-invitacion"
+  | "sin-perfil"
+  | "sin-conexion"
+  | "login-fallido";
 
 interface AuthState {
   session: Session | null;
@@ -39,12 +45,23 @@ export const useAuthStore = defineStore("auth", {
       const query = new URLSearchParams(window.location.search);
       const hash = new URLSearchParams(window.location.hash.slice(1));
       if (query.get("error") || hash.get("error")) {
-        this.loginError = "sin-invitacion";
+        const description =
+          query.get("error_description") ?? hash.get("error_description") ?? "";
+        // El hook rechaza con "Ese correo no tiene invitación."; lo demás (cancelar, etc.) es otro aviso
+        this.loginError = /invitaci/i.test(description)
+          ? "sin-invitacion"
+          : "login-fallido";
       }
 
       try {
-        // Un token vencido o inválido llega como error: se trata como "sin sesión"
         const { data, error } = await supabase.auth.getSession();
+        // Sin red, supabase-js no puede renovar un token vencido: no es "sin sesión", es "sin internet"
+        if (isAuthRetryableFetchError(error) || !navigator.onLine) {
+          this.session = null;
+          this.loginError = "sin-conexion";
+          return;
+        }
+        // Un token vencido o inválido llega como error: se trata como "sin sesión"
         this.session = error ? null : data.session;
         if (!this.session) return;
 
@@ -59,9 +76,24 @@ export const useAuthStore = defineStore("auth", {
           this.session = null;
           this.loginError = "sin-conexion";
         }
+      } catch (sessionError) {
+        // Nunca dejar la app en blanco: si algo raro truena, se muestra la Bienvenida con aviso
+        console.error(sessionError);
+        this.session = null;
+        this.loginError = "sin-conexion";
       } finally {
         this.loaded = true;
       }
+    },
+
+    // Si la sesión se cierra en otra pestaña o vence sin poder renovarse, limpia y avisa
+    listenForSignOut(onSignedOut: () => void): void {
+      supabase.auth.onAuthStateChange((event) => {
+        if (event !== "SIGNED_OUT") return;
+        this.session = null;
+        this.profile = null;
+        onSignedOut();
+      });
     },
 
     async signInWithGoogle(): Promise<void> {
@@ -80,8 +112,9 @@ export const useAuthStore = defineStore("auth", {
       this.profile.motive = motive;
     },
 
+    // Solo cierra la sesión de este dispositivo (la de la compu sigue abierta)
     async signOut(): Promise<void> {
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: "local" });
       this.session = null;
       this.profile = null;
     },

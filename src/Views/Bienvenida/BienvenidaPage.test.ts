@@ -8,7 +8,14 @@ import BienvenidaPage from "./BienvenidaPage.vue";
 
 vi.mock("@/lib/supabase", () => ({ supabase: { auth: {} } }));
 
-function setup(loginError: "" | "sin-invitacion" = ""): {
+function setup(
+  loginError:
+    | ""
+    | "sin-invitacion"
+    | "sin-perfil"
+    | "sin-conexion"
+    | "login-fallido" = "",
+): {
   w: VueWrapper;
   signIn: MockInstance;
 } {
@@ -40,5 +47,20 @@ describe("BienvenidaPage", () => {
     expect(setup("sin-invitacion").w.text()).toContain(
       "No pudimos dejarte entrar",
     );
+  });
+  it("avisa cuando falta el perfil", () => {
+    expect(setup("sin-perfil").w.text()).toContain(
+      "Entraste, pero falta tu perfil",
+    );
+  });
+  it("avisa sin conexión y deja reintentar", () => {
+    const text = setup("sin-conexion").w.text();
+    expect(text).toContain("Sin conexión a internet");
+    expect(text).toContain("Reintentar");
+  });
+  it("para otros errores de Google dice qué hacer", () => {
+    const text = setup("login-fallido").w.text();
+    expect(text).toContain("No se pudo completar el inicio de sesión");
+    expect(text).not.toContain("No pudimos dejarte entrar");
   });
 });

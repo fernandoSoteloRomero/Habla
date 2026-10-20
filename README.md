@@ -38,6 +38,7 @@ npm run dev                         # http://localhost:5173
 | `npm run lint` | ESLint (las mismas reglas de BaseFront) |
 | `npm run db:push` | Aplica las migraciones pendientes de `supabase/migrations/` |
 | `npm run db:sql -- archivo.sql` | Corre un archivo SQL (también `-- --query "select 1"`) |
+| `npm run db:check-auth` | Revisa que Auth siga como debe: solo Google, hook de invitados y URLs |
 | `npm run generate-pwa-assets` | Regenera los íconos desde `public/logo.svg` |
 | `npm run deploy` | Build y publicación en Cloudflare |
 
@@ -50,7 +51,9 @@ npm run dev                         # http://localhost:5173
    SUPABASE_ACCESS_TOKEN=sbp_...
    ```
    Se crea en tu avatar → Account preferences → Access Tokens. Vence a los 30 días: cuando venza, genera otro.
-4. Pruebas de la base de datos: `npm run db:sql -- supabase/tests/base_checks.sql`. Si todo está bien, responde `OK: pruebas de la fase 1`, y no deja datos, porque corre en una transacción que se deshace.
+4. **No uses `supabase config push`.** La configuración de Auth vive en el proyecto, y `supabase/config.toml` está igualado a ella por si acaso. Para revisarla, usa `npm run db:check-auth`.
+   - El hook es el filtro de invitados, pero también hay una segunda barrera: la base de datos no crea perfiles de correos que no estén en `invites`.
+5. Pruebas de la base de datos: `npm run db:sql -- supabase/tests/base_checks.sql`. Si todo está bien, responde `OK: pruebas de la fase 1`, y no deja datos, porque corre en una transacción que se deshace.
 
 ## Invitar a alguien
 

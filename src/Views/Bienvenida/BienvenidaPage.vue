@@ -76,6 +76,19 @@ function retry(): void {
       </div>
     </div>
     <div
+      v-else-if="auth.loginError === 'login-fallido'"
+      class="mt-3.5 flex gap-[11px] rounded-xl bg-concrete p-3 text-sm leading-snug"
+    >
+      <span class="grid size-8 shrink-0 place-items-center rounded-[7px] bg-ink">
+        <svg class="size-[19px] fill-white"><use href="#i-mail" /></svg>
+      </span>
+      <div>
+        <b class="mb-0.5 block">No se pudo completar el inicio de sesión</b>
+        Vuelve a intentarlo. Si no tienes invitación, pídesela a quien te
+        recomendó la app.
+      </div>
+    </div>
+    <div
       v-else-if="auth.loginError === 'sin-conexion'"
       class="mt-3.5 flex gap-[11px] rounded-xl bg-concrete p-3 text-sm leading-snug"
     >
