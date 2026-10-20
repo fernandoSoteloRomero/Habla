@@ -1,7 +1,7 @@
 # Habla — Documento de diseño
 
-- **Estado:** borrador para revisión
-- **Fecha:** 2026-10-12 (diseño iniciado el 2026-10-07)
+- **Estado:** aprobado el 2026-10-19
+- **Fecha:** 2026-10-12 (diseño iniciado el 2026-10-07; ajustes del 2026-10-19 en las secciones 4 y 7)
 - **Autor del producto:** Fernando (admin del grupo)
 - **Nombre:** "Habla" es provisional.
 - **Pantallas de referencia:** [`docs/design/habla-pantallas.html`](../../design/habla-pantallas.html) (abrir en el navegador)
@@ -49,7 +49,7 @@ Una web app instalable (PWA) para que un grupo chico de hispanohablantes adultos
 
 **En la v1**
 
-- Login por invitación (Google o enlace al correo).
+- Login por invitación, solo con Google.
 - Pregunta de motivo (trabajo, viajes o ambos).
 - Evaluación inicial y revisión mensual de nivel.
 - Ruta fija Nivel 0 → A1 → A2 → B1, con metas por unidad.
@@ -66,6 +66,7 @@ Una web app instalable (PWA) para que un grupo chico de hispanohablantes adultos
 **Fuera de la v1** (posibles siguientes pasos)
 
 - Preparación de examen (TOEFL, IELTS, etc.).
+- Entrar con un enlace al correo. El correo gratis de Supabase solo llega a los miembros del equipo del proyecto, como máximo 2 por hora. Para tus amigos haría falta un dominio propio y un servicio de correo (decisión del 2026-10-19).
 - Modo sin conexión.
 - Comparar el avance entre personas o un tablero del grupo.
 - Recordatorios con notificaciones push.
@@ -153,7 +154,7 @@ Solo lo ve Fernando:
 Se inspira en la señalética del Metro de la Ciudad de México (Lance Wyman): orientarse con **color, pictograma y posición** aunque no se pueda leer el letrero.
 
 Las pantallas aprobadas están en `docs/design/habla-pantallas.html`, numeradas de la 1.1 a la 5:
-- **Primer uso:** bienvenida, motivo, evaluación y resultado.
+- **Primer uso:** bienvenida, motivo, evaluación y resultado. La bienvenida (1.1) ya no lleva el botón "Recibir un enlace por correo" (ver sección 4).
 - **Sesión:** inicio, repasar, aprender, conversar en iPhone, conversar en Android o computadora, y resumen.
 - **Avance:** repaso, mi línea, meta lograda y casi lo tienes.
 - **Admin:** mi grupo y avisos.
@@ -198,7 +199,7 @@ Las pantallas aprobadas están en `docs/design/habla-pantallas.html`, numeradas 
 ## 7. Arquitectura
 
 ```
-[PWA Vue 3]  --login-->  [Supabase Auth: Google / enlace mágico, solo invitados]
+[PWA Vue 3]  --login-->  [Supabase Auth: Google, solo invitados]
      |                                   |
      |  supabase-js (con sesión)         v
      +------------------------>  [Postgres + RLS] (perfiles, progreso, frases, uso)
@@ -211,7 +212,7 @@ Las pantallas aprobadas están en `docs/design/habla-pantallas.html`, numeradas 
   - Vue 3 + Vite + TypeScript + shadcn-vue + Tailwind, más `vite-plugin-pwa`.
   - Router con pestañas Hoy / Repaso / Mi línea, y Mi grupo solo para el admin.
   - TanStack Query para los datos.
-  - Se publica gratis en Vercel, Netlify o Cloudflare Pages.
+  - Se publica gratis en Cloudflare (Workers con archivos estáticos). No tiene límite de tráfico ni pausa el sitio.
 - **Voz (módulos intercambiables):**
   - `useSpeechInput` elige la estrategia en este orden:
     1. `webSpeech` (Web Speech API) si el navegador la soporta bien: Chrome/Edge de escritorio y Android.
@@ -220,7 +221,7 @@ Las pantallas aprobadas están en `docs/design/habla-pantallas.html`, numeradas 
   - `useSpeechOutput` usa `speechSynthesis`, con velocidad normal o lenta (0.8×).
   - Siempre se puede cambiar a escribir.
 - **Backend (Supabase):**
-  - Auth con registro **solo por invitación**: allowlist en la tabla `invites` y validación al primer login.
+  - Auth con registro **solo por invitación**. La tabla `invites` es la lista permitida. El hook "Before User Created" de Supabase rechaza cualquier otro correo antes de crear la cuenta.
   - Postgres con Row Level Security por usuario.
   - Edge Functions en TypeScript.
 - **IA:**
