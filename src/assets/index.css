@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+/* ===================== Tokens de la dirección Línea ===================== */
+@theme {
+  --color-white: #ffffff;
+  --color-concrete: #eef0f2;
+  --color-rule: #d9dde2;
+  --color-ink: #000000;
+  --color-ink-2: #5b616b;
+  --color-rosa: #e4007c;
+  --color-yellow: #ffd100;
+  --color-yellow-soft: #fff6cc;
+  /* Líneas por nivel: Nivel 0 rosa, A1 azul, A2 verde, B1 naranja */
+  --color-l0: #e4007c;
+  --color-l1: #0057b8;
+  --color-l1-soft: #e5eef9;
+  --color-l2: #00965e;
+  --color-l2-soft: #e3f4ec;
+  --color-l3: #e87722;
+
+  --font-sans: "Atkinson Hyperlegible", system-ui, sans-serif;
+  --font-display: "Barlow Condensed", sans-serif;
+
+  /* Escala del spec: 12, 14, 16, 19, 22, 30 y 44 px */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 19px;
+  --text-xl: 22px;
+  --text-2xl: 30px;
+  --text-3xl: 44px;
+}
+
+/* ===================== Variables de shadcn-vue con los tokens ===================== */
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #e4007c;
+  --primary-foreground: #ffffff;
+  --secondary: #eef0f2;
+  --secondary-foreground: #000000;
+  --muted: #eef0f2;
+  --muted-foreground: #5b616b;
+  --accent: #eef0f2;
+  --accent-foreground: #000000;
+  /* Nunca rojo: lo "destructivo" también va en negro */
+  --destructive: #000000;
+  --border: #d9dde2;
+  --input: #d9dde2;
+  --ring: #000000;
+  --radius: 12px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 2px);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-white font-sans text-base text-ink;
+  }
+}
