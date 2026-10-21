@@ -6,20 +6,26 @@
 //   npm run db:sql -- --query "select 1"                 corre una consulta
 //   npm run db:push                                      aplica las migraciones pendientes
 //   npm run db:check-auth                                revisa la configuración de Auth
+//   npm run db:secrets                                   sube ANTHROPIC_API_KEY a los secretos
 //
 // Necesita SUPABASE_ACCESS_TOKEN (sbp_...) en .env.local (git lo ignora) o en el entorno.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 
-function readToken() {
-  if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN;
+// Lee una variable del entorno o de .env.local (git lo ignora). Nunca se imprime su valor.
+function readLocalEnv(name) {
+  if (process.env[name]) return process.env[name];
   if (existsSync(".env.local")) {
     const line = readFileSync(".env.local", "utf8")
       .split(/\r?\n/)
-      .find((l) => l.startsWith("SUPABASE_ACCESS_TOKEN="));
-    if (line) return line.slice("SUPABASE_ACCESS_TOKEN=".length).trim();
+      .find((l) => l.startsWith(`${name}=`));
+    if (line) return line.slice(name.length + 1).trim();
   }
-  console.error("Falta SUPABASE_ACCESS_TOKEN en .env.local (ver README).");
+  console.error(`Falta ${name} en .env.local (ver README).`);
   process.exit(1);
+}
+
+function readToken() {
+  return readLocalEnv("SUPABASE_ACCESS_TOKEN");
 }
 
 function readProjectRef() {
@@ -129,12 +135,32 @@ async function checkAuth() {
   if (checks.some(([, ok]) => !ok)) process.exitCode = 1;
 }
 
+// Sube la API key de Anthropic a los secretos de las Edge Functions y lista solo los nombres
+async function pushSecrets() {
+  const base = `https://api.supabase.com/v1/projects/${readProjectRef()}/secrets`;
+  const headers = {
+    Authorization: `Bearer ${readToken()}`,
+    "Content-Type": "application/json",
+  };
+  const value = readLocalEnv("ANTHROPIC_API_KEY");
+  const response = await fetch(base, {
+    method: "POST",
+    headers,
+    body: JSON.stringify([{ name: "ANTHROPIC_API_KEY", value }]),
+  });
+  if (!response.ok) throw new Error(`HTTP ${response.status} al subir el secreto`);
+  const list = await (await fetch(base, { headers })).json();
+  console.log("Secretos en Supabase:", list.map((s) => s.name).join(", "));
+}
+
 const [command, ...args] = process.argv.slice(2);
 try {
   if (command === "push") {
     await push();
   } else if (command === "check-auth") {
     await checkAuth();
+  } else if (command === "secrets") {
+    await pushSecrets();
   } else if (command === "sql" && args[0] === "--query" && args[1]) {
     console.table(await runSql(args[1]));
   } else if (command === "sql" && args[0]) {
@@ -144,6 +170,7 @@ try {
     console.error('     npm run db:sql -- --query "select 1"');
     console.error("     npm run db:push");
     console.error("     npm run db:check-auth");
+    console.error("     npm run db:secrets");
     process.exitCode = 1;
   }
 } catch (error) {

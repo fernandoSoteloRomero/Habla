@@ -39,6 +39,8 @@ npm run dev                         # http://localhost:5173
 | `npm run db:push` | Aplica las migraciones pendientes de `supabase/migrations/` |
 | `npm run db:sql -- archivo.sql` | Corre un archivo SQL (también `-- --query "select 1"`) |
 | `npm run db:check-auth` | Revisa que Auth siga como debe: solo Google, hook de invitados y URLs |
+| `npm run db:secrets` | Sube `ANTHROPIC_API_KEY` de `.env.local` a los secretos de Supabase |
+| `npm run fn:deploy` | Publica la Edge Function `placement` |
 | `npm run generate-pwa-assets` | Regenera los íconos desde `public/logo.svg` |
 | `npm run deploy` | Build y publicación en Cloudflare |
 
@@ -54,6 +56,18 @@ npm run dev                         # http://localhost:5173
 4. **No uses `supabase config push`.** La configuración de Auth vive en el proyecto, y `supabase/config.toml` está igualado a ella por si acaso. Para revisarla, usa `npm run db:check-auth`.
    - El hook es el filtro de invitados, pero también hay una segunda barrera: la base de datos no crea perfiles de correos que no estén en `invites`.
 5. Pruebas de la base de datos: `npm run db:sql -- supabase/tests/base_checks.sql`. Si todo está bien, responde `OK: pruebas de la fase 1`, y no deja datos, porque corre en una transacción que se deshace.
+
+## IA (Claude Haiku 5.5)
+
+- **Dónde vive la key:** en `.env.local` como `ANTHROPIC_API_KEY`, que git ignora, y en los **secretos de Supabase**. Nunca va en la app.
+  - Para subirla o cambiarla: `npm run db:secrets`, que solo muestra los nombres de los secretos.
+- **Las funciones** están en `supabase/functions/`. La lógica pura vive en `_shared/`, sin `npm:` ni Deno, así que Vitest la prueba.
+  - Para publicarlas: `npm run fn:deploy`, que usa `--use-api`, así que no necesita Docker y funciona desde la oficina.
+- **Gasto:**
+  - Cada llamada queda en `public.usage_log` con sus tokens y su costo en dólares. Una evaluación cuesta alrededor de $0.0002.
+  - Revisa lo de las últimas llamadas con `npm run db:sql -- --query "select function, cost_usd, created_at from public.usage_log order by created_at desc limit 10"`.
+- **Tope:** en la consola de Anthropic, en Settings → Billing → Spend limits, $5 USD al mes y **sin recarga automática**. Si se alcanza, la app muestra "Se terminó el presupuesto de IA".
+- **Límite por persona:** máximo 5 evaluaciones en 24 horas.
 
 ## Invitar a alguien
 

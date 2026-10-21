@@ -87,10 +87,16 @@ export function parsePlacementOutput(
   const { level, resumen } = data as Record<string, unknown>;
   if (!LEVELS.includes(level as LevelId)) return null;
   if (typeof resumen !== "string" || resumen.trim() === "") return null;
-  return {
-    level: level as LevelId,
-    resumen: resumen.trim().slice(0, MAX_TEXT),
-  };
+  return { level: level as LevelId, resumen: trimResumen(resumen.trim()) };
+}
+
+// Si el resumen pasa de 300 caracteres, se queda con las frases completas que quepan;
+// solo si la primera frase ya es más larga, se corta en seco.
+function trimResumen(text: string): string {
+  if (text.length <= MAX_TEXT) return text;
+  const cut = text.slice(0, MAX_TEXT);
+  const lastSentenceEnd = cut.lastIndexOf(". ");
+  return lastSentenceEnd > 0 ? cut.slice(0, lastSentenceEnd + 1) : cut;
 }
 
 export const PLACEMENT_SCHEMA = {
@@ -112,7 +118,10 @@ Decide en qué línea empieza:
 - B1: da opiniones, cuenta experiencias y resuelve problemas con cierta fluidez.
 Califica las abiertas por comunicación, no por perfección: si se entiende y responde lo que se pidió, cuenta. "No sé" o una respuesta vacía no cuenta, sin castigar más.
 Si dudas entre dos niveles, elige el más bajo: es mejor empezar fácil.
-Escribe "resumen" en español de México, en segunda persona (tú), en máximo dos frases cortas y en voz activa: primero lo que ya puede hacer y luego qué va a practicar primero. Sin emojis, sin signos de admiración y sin mencionar calificaciones.`;
+Escribe "resumen" en español de México, en máximo dos frases cortas y 35 palabras en total, hablándole de tú pero sin escribir la palabra "tú", en voz activa.
+La primera frase dice lo que ya puede hacer; la segunda empieza con "Primero vas a practicar" y nombra un tema de su primera línea, no una regla de gramática.
+Ejemplo: "Ya entiendes saludos y frases básicas. Primero vas a practicar cómo hablar de ti y de tu trabajo."
+Sin emojis, sin signos de admiración y sin mencionar errores ni calificaciones.`;
 
 export function buildPlacementPrompt(answers: PlacementAnswer[]): string {
   const lines = answers.map((a, i) => {

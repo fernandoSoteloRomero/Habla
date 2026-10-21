@@ -193,8 +193,13 @@ Decide en qué línea empieza:
 - B1: da opiniones, cuenta experiencias y resuelve problemas con cierta fluidez.
 Califica las abiertas por comunicación, no por perfección: si se entiende y responde lo que se pidió, cuenta. "No sé" o una respuesta vacía no cuenta, sin castigar más.
 Si dudas entre dos niveles, elige el más bajo: es mejor empezar fácil.
-Escribe "resumen" en español de México, en segunda persona (tú), en máximo dos frases cortas y en voz activa: primero lo que ya puede hacer y luego qué va a practicar primero. Sin emojis, sin signos de admiración y sin mencionar calificaciones.
+Escribe "resumen" en español de México, en máximo dos frases cortas y 35 palabras en total, hablándole de tú pero sin escribir la palabra "tú", en voz activa.
+La primera frase dice lo que ya puede hacer; la segunda empieza con "Primero vas a practicar" y nombra un tema de su primera línea, no una regla de gramática.
+Ejemplo: "Ya entiendes saludos y frases básicas. Primero vas a practicar cómo hablar de ti y de tu trabajo."
+Sin emojis, sin signos de admiración y sin mencionar errores ni calificaciones.
 ```
+
+  - Nota de la ejecución (2026-10-21): en la prueba real, la primera versión del prompt dio resúmenes de más de 300 caracteres que empezaban con "Tú ya puedes…". Por eso se fijó el máximo de 35 palabras, el inicio "Primero vas a practicar" y el ejemplo. Además, `parsePlacementOutput` corta en una frase completa.
 
   - **`buildPlacementPrompt`:** una línea por respuesta, `"{n}. [{level}] ({kind}) {prompt} → {answer|"No sé"} ({correcta|incorrecta|abierta})"`, más una línea final con el nivel más alto que se alcanzó.
 - [ ] **Step 4: Correr las pruebas.**

@@ -102,6 +102,17 @@ describe("parsePlacementOutput", () => {
     expect(parsePlacementOutput('{"level":"A1","resumen":"   "}')).toBeNull();
     expect(parsePlacementOutput('{"level":"A1"}')).toBeNull();
   });
+  it("si el resumen es largo, lo corta en una frase completa", () => {
+    const first =
+      "Ya puedes presentarte y hablar de tu fin de semana con frases simples.";
+    const out = parsePlacementOutput(
+      JSON.stringify({
+        level: "A1",
+        resumen: `${first} ${"Luego ".repeat(60)}más.`,
+      }),
+    );
+    expect(out?.resumen).toBe(first);
+  });
   it("recorta un resumen demasiado largo", () => {
     const out = parsePlacementOutput(
       JSON.stringify({ level: "A1", resumen: "a".repeat(400) }),
