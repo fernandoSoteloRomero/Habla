@@ -29,6 +29,7 @@ async function setup(): Promise<VueWrapper> {
     level: "L0",
     current_unit_id: "l0-saludar",
     is_admin: false,
+    placed_at: null,
   };
   await router.push({ path: "/motivo", force: true });
   return mount(MotivoPage, { global: { plugins: [pinia, router] } });
@@ -52,9 +53,7 @@ describe("MotivoPage", () => {
     expect(ProfileService.SaveMotive).toHaveBeenCalledWith("u1", "viajes");
     expect(useAuthStore().profile?.motive).toBe("viajes");
     // Hoy se carga con import(): se espera a que termine la navegación
-    await vi.waitFor(() =>
-      expect(router.currentRoute.value.name).toBe("hoy"),
-    );
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe("hoy"));
   });
   it("si no se guarda, avisa y se queda", async () => {
     vi.mocked(ProfileService.SaveMotive).mockRejectedValue(

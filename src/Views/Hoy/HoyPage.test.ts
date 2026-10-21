@@ -23,6 +23,7 @@ describe("HoyPage", () => {
       level: "A2",
       current_unit_id: "a2-restaurante",
       is_admin: false,
+      placed_at: null,
     };
     const w = mount(HoyPage, { global: { plugins: [pinia] } });
     const movil = w.get('[data-testid="linea-movil"]');

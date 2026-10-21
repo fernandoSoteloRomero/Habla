@@ -16,6 +16,7 @@ function login(motive: "viajes" | null): void {
     level: "L0",
     current_unit_id: "l0-saludar",
     is_admin: false,
+    placed_at: null,
   };
 }
 

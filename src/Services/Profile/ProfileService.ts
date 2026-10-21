@@ -9,7 +9,9 @@ export default {
   async GetProfile(userId: string): Promise<Profile | null> {
     const { data, error } = await supabase
       .from("profiles")
-      .select("user_id, name, motive, level, current_unit_id, is_admin")
+      .select(
+        "user_id, name, motive, level, current_unit_id, is_admin, placed_at",
+      )
       .eq("user_id", userId)
       .maybeSingle();
     if (error) throw error;

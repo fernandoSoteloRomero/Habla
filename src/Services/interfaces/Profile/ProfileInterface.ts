@@ -10,4 +10,6 @@ export interface Profile {
   level: LevelId;
   current_unit_id: string;
   is_admin: boolean;
+  // Se llena al terminar la evaluación inicial (fase 2); null mientras no la hace
+  placed_at: string | null;
 }

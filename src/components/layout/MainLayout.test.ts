@@ -23,6 +23,7 @@ describe("MainLayout", () => {
       level: "L0",
       current_unit_id: "l0-saludar",
       is_admin: false,
+      placed_at: null,
     };
     await router.push("/mi-linea");
     const w = mount(MainLayout, { global: { plugins: [pinia, router] } });

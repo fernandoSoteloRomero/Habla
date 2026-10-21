@@ -27,6 +27,7 @@ const profile = {
   level: "L0",
   current_unit_id: "l0-saludar",
   is_admin: false,
+  placed_at: null,
 };
 
 describe("auth store", () => {
@@ -182,7 +183,9 @@ describe("auth store", () => {
     expect(onSignedOut).toHaveBeenCalled();
   });
   it("cerrar sesión solo cierra este dispositivo", async () => {
-    vi.mocked(supabase.auth.signOut).mockResolvedValue({ error: null } as never);
+    vi.mocked(supabase.auth.signOut).mockResolvedValue({
+      error: null,
+    } as never);
     await useAuthStore().signOut();
     expect(supabase.auth.signOut).toHaveBeenCalledWith({ scope: "local" });
   });

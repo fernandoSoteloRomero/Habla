@@ -10,11 +10,7 @@ import type {
 
 // Aviso que se muestra en la Bienvenida cuando no se pudo entrar
 type LoginError =
-  | ""
-  | "sin-invitacion"
-  | "sin-perfil"
-  | "sin-conexion"
-  | "login-fallido";
+  "" | "sin-invitacion" | "sin-perfil" | "sin-conexion" | "login-fallido";
 
 interface AuthState {
   session: Session | null;
@@ -35,6 +31,7 @@ export const useAuthStore = defineStore("auth", {
     isAuthenticated: (state) => !!state.session && !!state.profile,
     hasMotive: (state) => !!state.profile?.motive,
     isAdmin: (state) => !!state.profile?.is_admin,
+    isPlaced: (state) => !!state.profile?.placed_at,
   },
 
   actions: {

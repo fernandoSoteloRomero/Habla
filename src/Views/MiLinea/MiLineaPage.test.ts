@@ -17,6 +17,7 @@ function mountAt(unitId: string): VueWrapper {
     level: "A2",
     current_unit_id: unitId,
     is_admin: false,
+    placed_at: null,
   };
   return mount(MiLineaPage, { global: { plugins: [pinia] } });
 }
