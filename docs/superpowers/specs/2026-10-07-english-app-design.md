@@ -218,7 +218,7 @@ Las pantallas aprobadas están en `docs/design/habla-pantallas.html`, numeradas 
     1. `webSpeech` (Web Speech API) si el navegador la soporta bien: Chrome/Edge de escritorio y Android.
     2. `keyboardDictation`: cuadro de texto con instrucciones para usar el dictado del teclado. Es la opción por defecto en iOS.
     3. A futuro, `cloudStt` (servicio de paga), sin cambiar las pantallas.
-  - `useSpeechOutput` usa `speechSynthesis`, con velocidad normal o lenta (0.8×).
+  - `useSpeechOutput` usa `speechSynthesis`, con velocidad normal o lenta (0.6×). Antes era 0.8×, pero en la prueba del 2026-10-21 casi no se notaba en el teléfono.
   - Siempre se puede cambiar a escribir.
 - **Backend (Supabase):**
   - Auth con registro **solo por invitación**. La tabla `invites` es la lista permitida. El hook "Before User Created" de Supabase rechaza cualquier otro correo antes de crear la cuenta.

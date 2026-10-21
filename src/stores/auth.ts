@@ -2,7 +2,12 @@ import type { Session } from "@supabase/supabase-js";
 import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { defineStore } from "pinia";
 import { supabase } from "@/lib/supabase";
+import PlacementService from "@/Services/Placement/PlacementService";
 import ProfileService from "@/Services/Profile/ProfileService";
+import type {
+  PlacementAnswer,
+  PlacementResult,
+} from "@/Services/interfaces/Placement/PlacementInterface";
 import type {
   Motive,
   Profile,
@@ -17,6 +22,8 @@ interface AuthState {
   profile: Profile | null;
   loaded: boolean;
   loginError: LoginError;
+  // Resultado de la evaluación que se acaba de hacer (para la pantalla Resultado)
+  lastPlacement: PlacementResult | null;
 }
 
 export const useAuthStore = defineStore("auth", {
@@ -25,6 +32,7 @@ export const useAuthStore = defineStore("auth", {
     profile: null,
     loaded: false,
     loginError: "",
+    lastPlacement: null,
   }),
 
   getters: {
@@ -107,6 +115,18 @@ export const useAuthStore = defineStore("auth", {
       if (!this.profile) return;
       await ProfileService.SaveMotive(this.profile.user_id, motive);
       this.profile.motive = motive;
+    },
+
+    // Manda las respuestas a la IA; lanza PlacementError si no se pudo (la pantalla avisa).
+    // El nivel, la estación y placed_at ya los guardó la función; aquí solo se reflejan.
+    async finishPlacement(answers: PlacementAnswer[]): Promise<void> {
+      const result = await PlacementService.Run(answers);
+      if (this.profile) {
+        this.profile.level = result.level;
+        this.profile.current_unit_id = result.unitId;
+        this.profile.placed_at = new Date().toISOString();
+      }
+      this.lastPlacement = result;
     },
 
     // Solo cierra la sesión de este dispositivo (la de la compu sigue abierta)

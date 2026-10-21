@@ -46,10 +46,10 @@ describe("useSpeechOutput", () => {
     expect(u.rate).toBe(1);
     expect(u.voice?.name).toBe("Samantha");
   });
-  it("más lento es 0.8", () => {
+  it("más lento es 0.6 (con 0.8 casi no se notaba en el teléfono)", () => {
     const synth = stubSpeech([{ lang: "en-US", name: "Samantha" }]);
     useSpeechOutput().speak("Good morning.", true);
-    expect(spokenWith(synth.speak).rate).toBe(0.8);
+    expect(spokenWith(synth.speak).rate).toBe(0.6);
   });
   it("sin voz en-US usa otra voz en inglés", () => {
     const synth = stubSpeech([

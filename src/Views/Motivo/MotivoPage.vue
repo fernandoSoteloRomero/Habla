@@ -51,7 +51,8 @@ async function continueToToday(): Promise<void> {
   saveFailed.value = false;
   try {
     await auth.saveMotive(selected.value);
-    await router.replace({ name: "hoy" });
+    // Sigue la evaluación inicial (si ya la hizo, el guard lo manda a Hoy)
+    await router.replace({ name: "evaluacion" });
   } catch (error) {
     console.error(error);
     saveFailed.value = true;
@@ -135,7 +136,9 @@ async function continueToToday(): Promise<void> {
       v-if="saveFailed"
       class="mb-3 flex gap-[11px] rounded-xl bg-concrete p-3 text-sm leading-snug"
     >
-      <span class="grid size-8 shrink-0 place-items-center rounded-[7px] bg-ink">
+      <span
+        class="grid size-8 shrink-0 place-items-center rounded-[7px] bg-ink"
+      >
         <svg class="size-[19px] fill-white"><use href="#i-nowifi" /></svg>
       </span>
       <p>No se guardó tu respuesta. Revisa tu conexión y vuelve a intentar.</p>

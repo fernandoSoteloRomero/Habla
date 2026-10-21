@@ -32,6 +32,16 @@ const router = createRouter({
       component: () => import("@/Views/Motivo/MotivoPage.vue"),
     },
     {
+      path: "/evaluacion",
+      name: "evaluacion",
+      component: () => import("@/Views/Evaluacion/EvaluacionPage.vue"),
+    },
+    {
+      path: "/resultado",
+      name: "resultado",
+      component: () => import("@/Views/Resultado/ResultadoPage.vue"),
+    },
+    {
       path: "/:pathMatch(.*)*",
       component: () => import("@/Views/404/NotFoundPage.vue"),
     },
@@ -57,8 +67,25 @@ router.beforeEach((to) => {
     return;
   }
 
-  // Ya entró y ya contestó: de la Bienvenida o del motivo lo regresa a Hoy
-  if (to.name === "bienvenida" || to.name === "motivo") {
+  // Después del motivo va la evaluación inicial: hasta terminarla, solo ve esa pantalla
+  if (!authStore.isPlaced) {
+    if (to.name !== "evaluacion") {
+      return { name: "evaluacion" };
+    }
+    return;
+  }
+
+  // Ya terminó el primer uso: de esas pantallas lo regresa a Hoy
+  if (
+    to.name === "bienvenida" ||
+    to.name === "motivo" ||
+    to.name === "evaluacion"
+  ) {
+    return { name: "hoy" };
+  }
+
+  // El resultado solo se ve justo después de la evaluación
+  if (to.name === "resultado" && !authStore.lastPlacement) {
     return { name: "hoy" };
   }
 });

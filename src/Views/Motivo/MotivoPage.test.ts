@@ -44,7 +44,7 @@ describe("MotivoPage", () => {
       w.get('[data-testid="continuar"]').attributes("disabled"),
     ).toBeDefined();
   });
-  it("guarda el motivo y lleva a hoy", async () => {
+  it("guarda el motivo y lleva a la evaluación", async () => {
     vi.mocked(ProfileService.SaveMotive).mockResolvedValue();
     const w = await setup();
     await w.get('[data-motivo="viajes"]').trigger("click");
@@ -52,8 +52,10 @@ describe("MotivoPage", () => {
     await flushPromises();
     expect(ProfileService.SaveMotive).toHaveBeenCalledWith("u1", "viajes");
     expect(useAuthStore().profile?.motive).toBe("viajes");
-    // Hoy se carga con import(): se espera a que termine la navegación
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe("hoy"));
+    // La evaluación se carga con import(): se espera a que termine la navegación
+    await vi.waitFor(() =>
+      expect(router.currentRoute.value.name).toBe("evaluacion"),
+    );
   });
   it("si no se guarda, avisa y se queda", async () => {
     vi.mocked(ProfileService.SaveMotive).mockRejectedValue(

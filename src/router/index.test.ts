@@ -6,7 +6,8 @@ import router from "./index";
 
 vi.mock("@/lib/supabase", () => ({ supabase: { auth: {} } }));
 
-function login(motive: "viajes" | null): void {
+// placed: si ya hizo la evaluación inicial (fase 2)
+function login(motive: "viajes" | null, placed = true): void {
   const auth = useAuthStore();
   auth.session = { user: { id: "u1" } } as Session;
   auth.profile = {
@@ -16,7 +17,7 @@ function login(motive: "viajes" | null): void {
     level: "L0",
     current_unit_id: "l0-saludar",
     is_admin: false,
-    placed_at: null,
+    placed_at: placed ? "2026-10-21T15:00:00Z" : null,
   };
 }
 
@@ -42,7 +43,7 @@ describe("guard del router", () => {
     expect(router.currentRoute.value.name).toBe("mi-linea");
   });
   it("sin motivo manda a motivo, incluso desde bienvenida", async () => {
-    login(null);
+    login(null, false);
     await go("/mi-linea");
     expect(router.currentRoute.value.name).toBe("motivo");
     await go("/bienvenida");
@@ -52,5 +53,29 @@ describe("guard del router", () => {
     login("viajes");
     await go("/motivo");
     expect(router.currentRoute.value.name).toBe("hoy");
+  });
+  it("con motivo pero sin evaluación, manda a la evaluación", async () => {
+    login("viajes", false);
+    await go("/mi-linea");
+    expect(router.currentRoute.value.name).toBe("evaluacion");
+    await go("/motivo");
+    expect(router.currentRoute.value.name).toBe("evaluacion");
+  });
+  it("ya evaluado, la evaluación manda a hoy", async () => {
+    login("viajes");
+    await go("/evaluacion");
+    expect(router.currentRoute.value.name).toBe("hoy");
+  });
+  it("el resultado solo se ve justo después de la evaluación", async () => {
+    login("viajes");
+    await go("/resultado");
+    expect(router.currentRoute.value.name).toBe("hoy");
+    useAuthStore().lastPlacement = {
+      level: "L0",
+      unitId: "l0-saludar",
+      resumen: "Ya entiendes saludos.",
+    };
+    await go("/resultado");
+    expect(router.currentRoute.value.name).toBe("resultado");
   });
 });

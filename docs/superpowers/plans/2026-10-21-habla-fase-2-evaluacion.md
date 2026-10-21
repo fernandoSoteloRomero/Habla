@@ -40,7 +40,11 @@
   - Un 400 cuyo mensaje cumple `/You have reached your specified (workspace )?API usage limits/`.
   - O un 429 con `error.details.error_code === "enforced_spend_limit_reached"`.
 - **Las respuestas abiertas se escriben en un cuadro de texto.** En iPhone se dictan con el micrófono del teclado, que es lo que el spec ya pedía para iOS. El reconocimiento de voz del navegador llega en la fase 4.
-- **Audio:** `speechSynthesis` con voz `en-US`, velocidad normal (1) y lenta (0.8). La primera vez siempre sale de un toque.
+- **Audio:** `speechSynthesis` con voz `en-US`, velocidad normal (1) y lenta (0.6). La primera vez siempre sale de un toque.
+- **Notas de la prueba de Fernando (2026-10-21):**
+  - Con 0.8 casi no se notaba la diferencia, así que lento quedó en 0.6.
+  - Tocar una opción solo la marca, y se avanza con "Siguiente".
+  - Al enviar, el botón dice "Calculando tu nivel…" y abajo aparece "Tarda unos segundos.".
 - **La red de la oficina bloquea Postgres:** las migraciones van con `npm run db:push`, los secretos con `npm run db:secrets` y las funciones con `npm run fn:deploy`. Todo es HTTPS.
 
 ## Review Focus

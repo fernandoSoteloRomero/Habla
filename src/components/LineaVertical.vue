@@ -13,6 +13,8 @@ const props = defineProps<{
   currentUnitId: string;
   color: Level["color"];
   largeCurrent?: boolean;
+  // Etiqueta de la estación actual ("Primera estación" en el Resultado)
+  currentLabel?: string;
 }>();
 
 // Clases completas por color de línea (Tailwind no detecta clases armadas)
@@ -83,7 +85,7 @@ function tileColor(state: StationState): TileColor {
             v-if="stateOf(unit) === 'aqui'"
             class="mt-[3px] inline-block rounded-[4px] bg-ink px-[7px] py-0.5 text-xs font-bold text-white"
           >
-            Estás aquí
+            {{ currentLabel ?? "Estás aquí" }}
           </span>
         </div>
       </div>

@@ -1,10 +1,11 @@
-// Audio en inglés con la voz del navegador (spec 7: useSpeechOutput, normal o lento 0.8×).
+// Audio en inglés con la voz del navegador (spec 7: useSpeechOutput, normal o lento).
+// Lento es 0.6×: con el 0.8× del spec casi no se notaba la diferencia en el teléfono (prueba del 2026-10-21).
 // - Gratis: usa speechSynthesis; no manda nada a ningún servidor de la app.
 // - Las voces se buscan al momento de hablar, porque getVoices() puede llegar vacío al principio.
 // - Siempre se cancela lo anterior antes de hablar: así se recupera la cola atorada de iOS.
 // - El primer speak() debe salir de un toque (iOS y Chrome lo exigen); los botones ya lo son.
 
-const SLOW_RATE = 0.8;
+const SLOW_RATE = 0.6;
 
 export function useSpeechOutput(): {
   supported: boolean;
