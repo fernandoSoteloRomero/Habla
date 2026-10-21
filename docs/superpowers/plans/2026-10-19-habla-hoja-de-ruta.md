@@ -4,14 +4,20 @@
 - **Por qué hay fases:** el spec tiene varios subsistemas: la app, la base de datos, las funciones con IA, la voz y el temario. Cada fase es un plan propio que deja algo usable en el iPhone.
 - **Cuándo se escribe cada plan:** el plan de la fase N se escribe cuando termina la fase N−1, para que parta del código real.
 
+**Nuevo orden (2026-10-21):**
+- Fernando ya compró $5 de crédito de Anthropic.
+- Prefirió que la IA lo ubique en su nivel antes de practicar, así que la evaluación pasa a la fase 2.
+- Aprender sin IA (frases clave del temario) se junta con el Repaso en la fase 3.
+
 | Fase | Plan | Qué queda funcionando | Secciones del spec |
 |---|---|---|---|
-| 1. Base | [`2026-10-19-habla-fase-1-base.md`](2026-10-19-habla-fase-1-base.md) | App instalable con el estilo Línea. Una persona invitada entra con Google, elige su motivo y ve Hoy y Mi línea. Publicada en Cloudflare. | 4, 5.1, 6, 7 (front y auth), 8 (`invites`, `profiles`) |
-| 2. Repaso | se escribe al terminar la 1 | Pestaña Repaso, tarjetas con "No me acordé / Me costó / Fácil", máximo 15 frases al día, audio normal y lento. Funciona sin IA. | 5.4, 3.1/2.2 de las pantallas, 8 (`phrases`), 12 (pruebas del algoritmo) |
-| 3. Sesión diaria con IA | se escribe al terminar la 2 | Las cuatro partes de la sesión, con `session-generate`, `conversation-turn` y `session-close`. Voz de entrada intercambiable. `usage_log`, límites diarios y los avisos de la IA y del presupuesto. | 5.3, 7 (voz, IA y funciones), 8 (`sessions`, `usage_log`), 9, 10 |
-| 4. Evaluación y avance | se escribe al terminar la 3 | Evaluación inicial y resultado, conversación final (`unit-check`), meta lograda con la única animación, "Casi lo tienes", revisión mensual y Mi grupo (invitar y gasto). Piloto de 1 semana. | 5.2, 5.5, 8 (`placements`, `unit_progress`), 12 (piloto) |
+| 1. Base ✅ | [`2026-10-19-habla-fase-1-base.md`](2026-10-19-habla-fase-1-base.md) | App instalable con el estilo Línea. Una persona invitada entra con Google, elige su motivo y ve Hoy y Mi línea. Publicada en Cloudflare. | 4, 5.1, 6, 7 (front y auth), 8 (`invites`, `profiles`) |
+| 2. Evaluación con IA | [`2026-10-21-habla-fase-2-evaluacion.md`](2026-10-21-habla-fase-2-evaluacion.md) | La base de IA: la Edge Function con la key, `usage_log`, límites y los avisos de IA y de presupuesto. La evaluación inicial (1.3) y el resultado (1.4): la IA te pone en tu nivel y tu primera estación. Audio normal y lento. | 5.2 (inicial), 7.1 (`placement`), 8 (`placements`, `usage_log`), 9, 10 |
+| 3. Aprender y Repaso | se escribe al terminar la 2 | 6 frases clave por meta en el temario. Aprender sin IA (2.3): 3 a 5 frases nuevas al día. Pestaña Repaso con "No me acordé / Me costó / Fácil", máximo 15 frases al día. | 5.3 (aprender y repasar), 5.4, 7.2 (`frases_clave`), 8 (`phrases`), 12 |
+| 4. Sesión diaria con IA | se escribe al terminar la 3 | Conversar con el personaje y el resumen, con `session-generate`, `conversation-turn` y `session-close`. La IA agrega notas y variaciones a Aprender. Voz de entrada intercambiable. | 5.3, 7 (voz e IA), 8 (`sessions`) |
+| 5. Avance y Mi grupo | se escribe al terminar la 4 | Conversación final (`unit-check`), meta lograda con la única animación, "Casi lo tienes", revisión mensual y Mi grupo (invitar y gasto). Piloto de 1 semana. | 5.2 (mensual), 5.5, 8 (`unit_progress`), 12 (piloto) |
 
-## Datos verificados el 2026-10-19 para las fases 2 a 4
+## Datos verificados el 2026-10-19 para las fases 2 a 5
 
 Se guardan aquí para que no haya que investigarlos otra vez. Hay que revisar las versiones al escribir cada plan.
 
@@ -40,7 +46,7 @@ Se guardan aquí para que no haya que investigarlos otra vez. Hay que revisar la
 - **Secretos:** se leen con `Deno.env.get`. Los nombres no pueden empezar con `SUPABASE_`.
 - **Streaming:** `supabase.functions.invoke` regresa el `Response` crudo cuando la respuesta es `text/event-stream`.
 - **Pruebas:** `deno test` necesita Deno, que no está instalado en la laptop. Para esquivarlo, la lógica pura va en módulos sin `npm:` ni `Deno`, que Vitest puede importar desde `supabase/functions/_shared/`.
-- **Riesgo con el temario:** está en `src/curriculum/` y ahí lo dejó el spec. En la fase 3 hay que comprobar que `functions deploy --use-api` empaqueta un archivo importado desde fuera de `supabase/functions`.
+- **Riesgo con el temario:** está en `src/curriculum/` y ahí lo dejó el spec. Al usar el temario desde una función (fase 3 o 4) hay que comprobar que `functions deploy --use-api` empaqueta un archivo importado desde fuera de `supabase/functions`.
   - Si no lo empaqueta, se mueve a `supabase/functions/_shared/curriculum/` y el front lo importa desde ahí.
   - Por eso los archivos del temario importan entre sí con ruta relativa y la extensión `.ts`, sin `@/`.
 
