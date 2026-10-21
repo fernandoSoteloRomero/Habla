@@ -6,7 +6,8 @@
     "types": ["vite/client", "vite-plugin-pwa/client"],
     "allowArbitraryExtensions": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["./supabase/functions/_shared/*"]
     },
 
     /* Linting */
@@ -16,5 +17,10 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "supabase/functions/_shared/**/*.ts"
+  ]
 }

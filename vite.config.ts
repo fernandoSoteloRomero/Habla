@@ -45,10 +45,14 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      // Lógica pura compartida con las Edge Functions (sin npm: ni Deno)
+      "@shared": fileURLToPath(
+        new URL("./supabase/functions/_shared", import.meta.url),
+      ),
     },
   },
   test: {
     environment: "jsdom",
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "supabase/functions/_shared/**/*.test.ts"],
   },
 });

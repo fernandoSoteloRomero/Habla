@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { firstUnitOf } from "@shared/placementLogic.ts";
 import { levels } from "./levels.ts";
 import { getUnit, units } from "./units.ts";
 
@@ -30,5 +31,11 @@ describe("temario", () => {
       "Pedir comida en un restaurante",
     );
     expect(getUnit("ya-no-existe").id).toBe("l0-saludar");
+  });
+  it("el mapa de primeras estaciones de la función coincide con el temario", () => {
+    levels.forEach((l) => {
+      const first = units.find((u) => u.nivel === l.id);
+      expect(firstUnitOf(l.id)).toBe(first?.id);
+    });
   });
 });
