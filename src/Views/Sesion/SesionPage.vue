@@ -2,13 +2,17 @@
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import ConversationView from "@/components/ConversationView.vue";
+import ExerciseDeck from "@/components/ExerciseDeck.vue";
 import LessonDeck from "@/components/LessonDeck.vue";
 import ReviewDeck from "@/components/ReviewDeck.vue";
 import SessionSteps from "@/components/SessionSteps.vue";
 import { Button } from "@/components/ui/button";
 import { budgetMonthText } from "@/common/BudgetMonth";
 import { localDate } from "@/common/Dates";
+import { buildExercises } from "@/common/Exercises";
+import type { Exercise, ExerciseSource } from "@/common/Exercises";
 import { pickNewPhrases } from "@/common/LessonPicker";
+import { useSpeechOutput } from "@/composables/useSpeechOutput";
 import { getUnit } from "@/curriculum/units";
 import type { KeyPhrase } from "@/curriculum/units";
 import PhrasesService from "@/Services/Phrases/PhrasesService";
@@ -23,21 +27,25 @@ import type {
 } from "@/Services/interfaces/Session/SessionInterface";
 import { useAuthStore } from "@/stores/auth";
 
-// Sesión de hoy (spec 5.3): Repasar → Aprender → Conversar → Resumen.
+// Sesión de hoy (spec 5.3): Repasar → Aprender → Practicar → Conversar → Resumen.
 // La IA prepara la sesión mientras la persona repasa (no la hace esperar). Si la IA no está
-// disponible, Repasar y Aprender funcionan igual y Conversar se puede saltar.
+// disponible, Repasar, Aprender y Practicar funcionan igual y Conversar se puede saltar.
 const auth = useAuthStore();
 const router = useRouter();
 // "Hoy" se calcula una sola vez al abrir la sesión
 const today = localDate(new Date());
 const unit = computed(() => getUnit(auth.profile?.current_unit_id ?? ""));
 const budget = budgetMonthText(new Date());
+const { supported: canSpeak } = useSpeechOutput();
+// Practicar: las frases nuevas de hoy y 2 de días anteriores
+const OLD_PHRASES_TO_PRACTICE = 2;
 
 type Stage =
   | "cargando"
   | "error"
   | "repasar"
   | "aprender"
+  | "practicar"
   | "conversar"
   | "cerrando"
   | "resumen";
@@ -46,6 +54,10 @@ const toReview = ref<Phrase[]>([]);
 const toLearn = ref<KeyPhrase[]>([]);
 const reviewed = ref(0);
 const learned = ref(0);
+// Las últimas frases del repaso: para practicar las de días anteriores y armar opciones
+const recent = ref<Phrase[]>([]);
+const exercises = ref<Exercise[]>([]);
+const practice = ref<{ firstTry: number; total: number } | null>(null);
 
 // Lo que preparó la IA
 const session = ref<SessionView | null>(null);
@@ -57,9 +69,12 @@ const minutes = ref<number | null>(null);
 const closeError = ref<SessionClientError | null>(null);
 
 // En la mini línea, "cerrando" ya cuenta como el resumen
-const step = computed<"repasar" | "aprender" | "conversar" | "resumen">(() =>
+const step = computed<
+  "repasar" | "aprender" | "practicar" | "conversar" | "resumen"
+>(() =>
   stage.value === "repasar" ||
   stage.value === "aprender" ||
+  stage.value === "practicar" ||
   stage.value === "conversar"
     ? stage.value
     : "resumen",
@@ -94,19 +109,18 @@ async function startSession(): Promise<void> {
 async function load(): Promise<void> {
   stage.value = "cargando";
   try {
-    const [queue, learnedEn, learnedToday] = await Promise.all([
+    const [queue, learnedEn, learnedToday, latest] = await Promise.all([
       PhrasesService.GetReviewQueue(today),
       PhrasesService.GetLearnedEn(unit.value.id),
       PhrasesService.CountLearnedToday(today),
+      PhrasesService.GetRecent(10),
     ]);
     toReview.value = queue.phrases;
     toLearn.value = pickNewPhrases(unit.value, learnedEn, learnedToday);
-    stage.value =
-      toReview.value.length > 0
-        ? "repasar"
-        : toLearn.value.length > 0
-          ? "aprender"
-          : "conversar";
+    recent.value = latest;
+    if (toReview.value.length > 0) stage.value = "repasar";
+    else if (toLearn.value.length > 0) stage.value = "aprender";
+    else goToPractice();
   } catch (error) {
     console.error(error);
     stage.value = "error";
@@ -116,12 +130,44 @@ async function load(): Promise<void> {
   void startSession();
 }
 
+// Los ejercicios de completar los preparó la IA; si todavía no llega, salen otros tipos
+function goToPractice(): void {
+  const extras = session.value?.content.frases ?? [];
+  const news: ExerciseSource[] = toLearn.value.map((f) => {
+    const extra = extras.find((e) => e.en === f.en);
+    return {
+      en: f.en,
+      es: f.es,
+      hueco: extra?.hueco,
+      trampas: extra?.trampas,
+      por_que: extra?.por_que,
+    };
+  });
+  const newEn = new Set(toLearn.value.map((f) => f.en));
+  const olds = recent.value
+    .filter((p) => !newEn.has(p.en))
+    .slice(0, OLD_PHRASES_TO_PRACTICE)
+    .map((p) => ({ en: p.en, es: p.es }));
+  exercises.value = buildExercises({
+    phrases: [...news, ...olds],
+    pool: [...unit.value.frases_clave, ...recent.value],
+    level: auth.profile?.level ?? "L0",
+    canSpeak,
+  });
+  stage.value = exercises.value.length > 0 ? "practicar" : "conversar";
+}
+
 function afterReview(count: number): void {
   reviewed.value = count;
-  stage.value = toLearn.value.length > 0 ? "aprender" : "conversar";
+  if (toLearn.value.length > 0) stage.value = "aprender";
+  else goToPractice();
 }
 function afterLesson(): void {
   learned.value = toLearn.value.length;
+  goToPractice();
+}
+function afterPractice(result: { firstTry: number; total: number }): void {
+  practice.value = result;
   stage.value = "conversar";
 }
 
@@ -249,6 +295,12 @@ onMounted(load);
         :today="today"
         :extras="session?.content.frases"
         @done="afterLesson"
+      />
+
+      <ExerciseDeck
+        v-else-if="stage === 'practicar'"
+        :exercises="exercises"
+        @done="afterPractice"
       />
 
       <!-- Conversar (pantallas 2.4 y 2.5) -->
@@ -395,8 +447,18 @@ onMounted(load);
             </svg>
             Aprendiste {{ learned }} frases nuevas
           </li>
+          <li v-if="practice" class="flex gap-2">
+            <svg
+              viewBox="0 0 24 24"
+              class="mt-px size-4 shrink-0 fill-none stroke-l2 stroke-[3.2]"
+            >
+              <use href="#i-check" />
+            </svg>
+            Ejercicios: acertaste {{ practice.firstTry }} de
+            {{ practice.total }} a la primera
+          </li>
           <li
-            v-if="!session && reviewed === 0 && learned === 0"
+            v-if="!session && !practice && reviewed === 0 && learned === 0"
             class="text-ink-2"
           >
             Hoy no había frases para repasar ni para aprender.

@@ -75,6 +75,17 @@ export default {
     return (data ?? []).map((row) => (row as { en: string }).en);
   },
 
+  // Las últimas frases que entraron al repaso (para practicar con ejercicios)
+  async GetRecent(limit: number): Promise<Phrase[]> {
+    const { data, error } = await supabase
+      .from("phrases")
+      .select(COLUMNS)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return (data ?? []) as Phrase[];
+  },
+
   // Cuántas frases de lección agregó hoy (desde la medianoche local): Aprender da máximo 4 al día.
   // Las correcciones de la conversación (fase 4) no cuentan.
   async CountLearnedToday(today: string): Promise<number> {

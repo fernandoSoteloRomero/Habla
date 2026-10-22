@@ -56,14 +56,15 @@ const button = (w: VueWrapper, text: string): ReturnType<VueWrapper["get"]> => {
 };
 
 describe("SesionHoyPanel", () => {
-  it("muestra los 4 pasos con los números de hoy y deja empezar", async () => {
+  it("muestra los 5 pasos con los números de hoy y deja empezar", async () => {
     const w = setup({ pending: 8, newCount: 4, unitDone: false });
     expect(w.text()).toContain("Repasar 8 frases");
     expect(w.text()).toContain("Aprender 4 frases nuevas");
+    expect(w.text()).toContain("Practicar con ejercicios");
     expect(w.text()).toContain("Conversar con el mesero");
     expect(w.text()).toContain("Ver tu resumen");
-    // 8 × 0.6 + 4 × 1.5 + 10 de conversación y resumen
-    expect(w.text()).toContain("21 minutos");
+    // 8 × 0.6 + 4 × 1.5 + 3 de ejercicios + 10 de conversación y resumen
+    expect(w.text()).toContain("24 minutos");
     await button(w, "Empezar sesión").trigger("click");
     await vi.waitFor(() =>
       expect(router.currentRoute.value.name).toBe("sesion"),

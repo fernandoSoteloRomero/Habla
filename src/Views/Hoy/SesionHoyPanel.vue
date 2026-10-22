@@ -21,9 +21,9 @@ const emit = defineEmits<{ retry: [] }>();
 const router = useRouter();
 const auth = useAuthStore();
 
-// ~36 s por repaso, ~90 s por frase nueva y ~10 minutos de conversación y resumen
+// ~36 s por repaso, ~90 s por frase nueva, ~3 minutos de ejercicios y ~10 de conversación y resumen
 const minutes = computed(() =>
-  Math.ceil(props.pending * 0.6 + props.newCount * 1.5 + 10),
+  Math.ceil(props.pending * 0.6 + props.newCount * 1.5 + 13),
 );
 // Siempre hay conversación, hasta que la sesión de hoy termina
 const canStart = computed(() => props.sessionStatus !== "terminada");
@@ -46,6 +46,7 @@ const steps = computed(() => [
           : "Ya aprendiste tus frases nuevas de hoy",
     muted: props.newCount === 0,
   },
+  { text: "Practicar con ejercicios", muted: false },
   { text: `Conversar con ${props.personaje}`, muted: false },
   { text: "Ver tu resumen", muted: false },
 ]);

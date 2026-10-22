@@ -3,6 +3,8 @@ import type { VueWrapper } from "@vue/test-utils";
 import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { buildExercises } from "@/common/Exercises";
+import type * as ExercisesModule from "@/common/Exercises";
 import { useSpeechOutput } from "@/composables/useSpeechOutput";
 import { getUnit } from "@/curriculum/units";
 import router from "@/router";
@@ -27,10 +29,17 @@ vi.mock("@/Services/Phrases/PhrasesService", () => ({
     GetReviewQueue: vi.fn(),
     GetLearnedEn: vi.fn(),
     CountLearnedToday: vi.fn(),
+    GetRecent: vi.fn(),
     SaveReview: vi.fn(),
     AddLessonPhrases: vi.fn(),
   },
 }));
+// Los ejercicios se prueban aparte; aquí se elige cuáles salen
+vi.mock("@/common/Exercises", async () => {
+  const actual =
+    await vi.importActual<typeof ExercisesModule>("@/common/Exercises");
+  return { ...actual, buildExercises: vi.fn() };
+});
 vi.mock("@/Services/Session/SessionService", async () => {
   const actual = await vi.importActual<typeof SessionModule>(
     "@/Services/Session/SessionService",
@@ -81,9 +90,9 @@ function aiSession(over: Partial<SessionView> = {}): SessionView {
           nota: "",
           ejemplo_en: "Example from the AI.",
           ejemplo_es: "Ejemplo de la IA.",
-          hueco: "",
-          trampas: [],
-          por_que: "",
+          hueco: "in charge",
+          trampas: ["on charge", "of charge"],
+          por_que: "Se dice “in charge of”.",
         },
       ],
       escena: unit.escenas.trabajo,
@@ -113,6 +122,8 @@ async function setup(
   });
   vi.mocked(PhrasesService.GetLearnedEn).mockResolvedValue(learnedEn);
   vi.mocked(PhrasesService.CountLearnedToday).mockResolvedValue(learnedToday);
+  vi.mocked(PhrasesService.GetRecent).mockResolvedValue(review(3));
+  vi.mocked(buildExercises).mockReturnValue([]);
   vi.mocked(PhrasesService.SaveReview).mockResolvedValue();
   vi.mocked(PhrasesService.AddLessonPhrases).mockResolvedValue();
   const pinia = createPinia();
@@ -185,7 +196,32 @@ describe("SesionPage", () => {
     expect(stage(w)).toBe("aprender");
     expect(w.text()).toContain("Otro ejemplo");
     expect(w.text()).toContain("Example from the AI.");
+    vi.mocked(buildExercises).mockReturnValue([
+      {
+        kind: "significado",
+        source: { en: "Old 9", es: "Vieja 9" },
+        prompt: "Old 9",
+        options: ["Vieja 9", "Otra", "Una más"],
+        answer: "Vieja 9",
+      },
+    ]);
     for (let i = 0; i < 3; i++) await click(w, "Siguiente frase");
+    await click(w, "Terminar");
+
+    // Practicar: las 4 nuevas (la primera con el hueco de la IA) y 2 de días anteriores
+    expect(stage(w)).toBe("practicar");
+    const { phrases } = vi.mocked(buildExercises).mock.calls[0][0];
+    expect(phrases.map((p) => p.en)).toEqual([
+      ...unit.frases_clave.slice(0, 4).map((f) => f.en),
+      "Old 0",
+      "Old 1",
+    ]);
+    expect(phrases[0]).toMatchObject({
+      hueco: "in charge",
+      trampas: ["on charge", "of charge"],
+    });
+    await click(w, "Vieja 9");
+    await click(w, "Revisar");
     await click(w, "Terminar");
 
     expect(stage(w)).toBe("conversar");
@@ -203,6 +239,7 @@ describe("SesionPage", () => {
     expect(w.text()).toContain("I agree");
     expect(w.text()).toContain("Repasaste 2 frases");
     expect(w.text()).toContain("Aprendiste 4 frases nuevas");
+    expect(w.text()).toContain("Ejercicios: acertaste 1 de 1 a la primera");
     expect(w.text()).toContain("Agregamos 5 frases a tu repaso.");
     await click(w, "Terminar");
     await vi.waitFor(() => expect(router.currentRoute.value.name).toBe("hoy"));

@@ -149,6 +149,12 @@ describe("PhrasesService", () => {
       localDayStart("2026-10-22"),
     ]);
   });
+  it("GetRecent trae las últimas frases que entraron al repaso", async () => {
+    const [calls] = queue({ data: [phrase], error: null });
+    expect(await PhrasesService.GetRecent(10)).toEqual([phrase]);
+    expect(calls).toContainEqual(["order", "created_at", { ascending: false }]);
+    expect(calls).toContainEqual(["limit", 10]);
+  });
   it("si una consulta falla, lanza el error", async () => {
     queue({ count: null, error: new Error("sin red") });
     await expect(PhrasesService.GetReviewQueue("2026-10-22")).rejects.toThrow(

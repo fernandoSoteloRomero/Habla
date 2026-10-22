@@ -1,12 +1,13 @@
 <script setup lang="ts">
-// Mini línea de la sesión (diseño: .l-mini): Repasar, Aprender, Conversar y Resumen.
-type Step = "repasar" | "aprender" | "conversar" | "resumen";
+// Mini línea de la sesión (diseño: .l-mini): Repasar, Aprender, Practicar, Conversar y Resumen.
+type Step = "repasar" | "aprender" | "practicar" | "conversar" | "resumen";
 
 const props = defineProps<{ current: Step }>();
 
 const steps: { id: Step; label: string }[] = [
   { id: "repasar", label: "Repasar" },
   { id: "aprender", label: "Aprender" },
+  { id: "practicar", label: "Practicar" },
   { id: "conversar", label: "Conversar" },
   { id: "resumen", label: "Resumen" },
 ];
