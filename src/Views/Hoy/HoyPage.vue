@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import LineaVertical from "@/components/LineaVertical.vue";
+import { localDate } from "@/common/Dates";
 import { getGreeting } from "@/common/Greeting";
+import { allLearned, pickNewPhrases } from "@/common/LessonPicker";
 import { getLevel } from "@/curriculum/levels";
 import { getUnit, units } from "@/curriculum/units";
+import PhrasesService from "@/Services/Phrases/PhrasesService";
 import { useAuthStore } from "@/stores/auth";
 import SesionHoyPanel from "./SesionHoyPanel.vue";
 
@@ -26,6 +29,33 @@ const levelStations = computed(() =>
   units.filter((u) => u.nivel === current.value.nivel),
 );
 
+// Números de la sesión de hoy: se cargan una vez y se pasan a los dos paneles
+const status = ref<"cargando" | "listo" | "error">("cargando");
+const pending = ref(0);
+const newCount = ref(0);
+const unitDone = ref(false);
+
+async function loadSession(): Promise<void> {
+  status.value = "cargando";
+  try {
+    const [queue, learnedEn] = await Promise.all([
+      PhrasesService.GetReviewQueue(localDate(new Date())),
+      PhrasesService.GetLearnedEn(current.value.id),
+    ]);
+    pending.value = queue.phrases.length;
+    newCount.value = pickNewPhrases(current.value, learnedEn).length;
+    unitDone.value = allLearned(current.value, learnedEn);
+    status.value = "listo";
+  } catch (error) {
+    console.error(error);
+    status.value = "error";
+  }
+}
+
+onMounted(loadSession);
+// Si cambia de estación (avance temporal), se recargan los números
+watch(() => current.value.id, loadSession);
+
 const lineLabel = computed(() =>
   level.value.id === "L0"
     ? "Línea rosa, Nivel 0"
@@ -44,7 +74,13 @@ const lineLabel = computed(() =>
         :color="level.color"
         large-current
       >
-        <SesionHoyPanel />
+        <SesionHoyPanel
+          :pending="pending"
+          :new-count="newCount"
+          :unit-done="unitDone"
+          :status="status"
+          @retry="loadSession"
+        />
       </LineaVertical>
     </div>
 
@@ -65,7 +101,14 @@ const lineLabel = computed(() =>
         >
           {{ current.titulo_es }}
         </h1>
-        <SesionHoyPanel class="mt-5" />
+        <SesionHoyPanel
+          class="mt-5"
+          :pending="pending"
+          :new-count="newCount"
+          :unit-done="unitDone"
+          :status="status"
+          @retry="loadSession"
+        />
       </div>
     </div>
   </div>

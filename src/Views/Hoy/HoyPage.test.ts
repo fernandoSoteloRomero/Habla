@@ -5,6 +5,14 @@ import { useAuthStore } from "@/stores/auth";
 import HoyPage from "./HoyPage.vue";
 
 vi.mock("@/lib/supabase", () => ({ supabase: { auth: {} } }));
+vi.mock("@/Services/Phrases/PhrasesService", () => ({
+  default: {
+    GetReviewQueue: vi
+      .fn()
+      .mockResolvedValue({ phrases: [], reviewedToday: 0 }),
+    GetLearnedEn: vi.fn().mockResolvedValue([]),
+  },
+}));
 
 describe("HoyPage", () => {
   beforeEach(() => {
