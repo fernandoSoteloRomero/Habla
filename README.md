@@ -99,7 +99,7 @@ npm run dev                         # http://localhost:5173
 - **El temario** vive en `supabase/functions/_shared/curriculum/`, porque el CLI no sube archivos de fuera de `supabase/functions`. La app lo importa con los re-exports de `src/curriculum/`.
   - Cada meta tiene dos escenas, una de trabajo y otra de viajes. Con el motivo "ambos" se alternan por día.
 - **La conversación la guarda el servidor** en `sessions.transcript`. La app solo manda el texto nuevo y nunca guarda audio.
-- **Límites por persona en 24 horas:** 3 preparaciones de sesión, 40 turnos y 3 resúmenes.
+- **Límites por persona en 24 horas:** 6 preparaciones de sesión, 40 turnos y 6 resúmenes (la sesión del día más las conversaciones extra).
   - Cada conversación tiene máximo 10 turnos.
   - En cada sesión entran al repaso máximo 3 correcciones.
 - **Practicar (ejercicios, decisión del 2026-10-22):** después de Aprender vienen unos 6 ejercicios con las frases nuevas y 2 de días anteriores.
@@ -107,6 +107,16 @@ npm run dev                         # http://localhost:5173
   - Los de completar los prepara la IA en `start`, con 2 trampas típicas y por qué.
   - Lo que falla vuelve al final, hasta 3 intentos. No hay puntos ni calificación, y no cambia cuándo vuelve cada frase al repaso.
   - En la pestaña Repaso, "Practicar con ejercicios" arma 8 ejercicios con frases de tu repaso, sin IA.
+- **Ayuda en la conversación (decisión del 2026-10-22):** no a todos se les facilita chatear o hablar.
+  - **guiada:** se elige la respuesta entre 3 opciones con su traducción.
+  - **con ayuda:** se escribe o se dicta, con frases sugeridas.
+  - **libre:** sin sugerencias.
+  - Empieza según el nivel (Nivel 0 y A1 guiada, A2 con ayuda, B1 libre).
+  - Al cerrar cada conversación se ajusta sola (`supabase/functions/_shared/ayuda.ts`): más ayuda si le costó y menos si le salió bien con sus palabras.
+  - En la conversación, "Más ayuda" y "Menos ayuda" la cambian. Se guarda en `profiles.ayuda`.
+- **Seguir practicando:** al terminar, la app recomienda otra conversación con la otra escena de la meta (`/practica`, `sessions.kind = 'practica'`) o ejercicios, según cómo le fue.
+  - Las conversaciones extra no cuentan como la sesión del día.
+  - Comparten los 40 turnos al día.
 - **Sin IA** (por presupuesto, límite o falla), Repasar, Aprender y Practicar funcionan igual, Conversar se puede saltar y el resumen sale sin "Lo que hiciste bien".
 - **Voz:**
   - En Chrome o Edge de computadora y en Android, el micrófono se mantiene presionado mientras hablas.

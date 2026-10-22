@@ -703,3 +703,22 @@ Fernando pidió ejercicios para comprobar si recuerda las frases, además de lee
   - El resumen dice "Ejercicios: acertaste X de N a la primera."
 - **Repaso:** "Practicar con ejercicios" (`/repaso/ejercicios`) arma 8 ejercicios con frases recientes, sin IA.
 - **Evaluación:** `npm run ai:eval` revisa que al menos 3 de 4 frases traigan su ejercicio de completar bien armado. En la meta del hotel salieron 3 de 4: la cuarta traía un hueco que no estaba en la frase y se descartó.
+
+### Agregado del 2026-10-22: ayuda en la conversación y "Seguir practicando"
+
+Fernando: "no a todos se les facilita chatear o hablar". Aprobó este diseño:
+
+- **Tres niveles de ayuda** (`_shared/ayuda.ts`):
+  - **guiada:** se elige la respuesta entre 3 opciones con su traducción, con un toque.
+  - **con ayuda:** se escribe o se dicta, con sugerencias.
+  - **libre:** sin sugerencias.
+  - Las sugerencias ahora son `{ en, es }`, y se guardan siempre en la conversación. Mostrarlas o no lo decide la app según la ayuda.
+- **Ajuste automático al cerrar** (`nextAyuda`):
+  - **Le costó:** no habló, o la mitad o más de sus mensajes necesitaron corrección. Más ayuda, y la recomendación es ejercicios.
+  - **Le salió bien:** 3 mensajes o más, máximo 1 corrección y, en guiada, llegó al final de la escena; con ayuda, la mayoría con sus palabras. Menos ayuda.
+  - La función la guarda en `profiles.ayuda`. La persona también la cambia con "Más ayuda" o "Menos ayuda" (`grant update (ayuda)`).
+- **Seguir practicando:**
+  - `start` con `practice: true` crea una sesión `kind = 'practica'` con la otra escena de la meta (se turnan si hay más de una) y sin frases nuevas.
+  - La sesión del día queda única con un índice parcial (`where kind = 'diaria'`). Hoy, los días de práctica y `findSessionByDate` solo miran la diaria.
+- **Límites:** preparar y cerrar suben a 6 al día. Los 40 turnos siguen siendo el tope del gasto. El turno sube a 500 tokens, porque las sugerencias traen su traducción.
+- **El avance temporal (`advance_unit`)** ya no cuenta las correcciones (`source = 'leccion'`).
