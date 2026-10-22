@@ -38,7 +38,7 @@ const KINDS_BY_LEVEL: Record<LevelId, ExerciseKind[]> = {
 const MIN_ORDER_WORDS = 3;
 const MAX_ORDER_WORDS = 9;
 
-function shuffle<T>(items: T[], random: () => number): T[] {
+export function shuffle<T>(items: T[], random: () => number): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));

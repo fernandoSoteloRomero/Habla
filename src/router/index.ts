@@ -34,6 +34,11 @@ const router = createRouter({
           name: "repaso-tarjetas",
           component: () => import("@/Views/Repaso/TarjetasPage.vue"),
         },
+        {
+          path: "repaso/ejercicios",
+          name: "repaso-ejercicios",
+          component: () => import("@/Views/Repaso/EjerciciosPage.vue"),
+        },
       ],
     },
     {

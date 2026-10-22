@@ -91,6 +91,17 @@ describe("RepasoPage", () => {
       .trigger("click");
     expect(speak).toHaveBeenCalledWith("Could you repeat that?", false);
   });
+  it("deja practicar con ejercicios cuando ya hay frases en el repaso", async () => {
+    const w = await setup(0, 3);
+    const practice = w
+      .findAll("button")
+      .find((b) => b.text() === "Practicar con ejercicios");
+    expect(practice?.classes()).not.toContain("bg-rosa");
+    await practice?.trigger("click");
+    await vi.waitFor(() =>
+      expect(router.currentRoute.value.name).toBe("repaso-ejercicios"),
+    );
+  });
   it("sin frases pendientes no ofrece repasar", async () => {
     const w = await setup(0, 3);
     expect(w.text()).toContain("No tienes frases pendientes hoy");

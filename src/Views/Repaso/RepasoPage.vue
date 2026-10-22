@@ -23,6 +23,8 @@ const pending = computed(() => queue.value?.phrases.length ?? 0);
 const doneForToday = computed(
   () => (queue.value?.reviewedToday ?? 0) >= MAX_REVIEWS_PER_DAY,
 );
+// Con menos frases no alcanza para armar opciones
+const MIN_TO_PRACTICE = 3;
 // Unos 36 segundos por frase (diseño: 8 frases, 5 minutos)
 const minutes = computed(() => Math.ceil(pending.value * 0.6));
 
@@ -102,6 +104,16 @@ onMounted(load);
           </p>
         </template>
       </div>
+
+      <!-- Practicar con ejercicios cuando quieras (sin IA, no cambia el repaso) -->
+      <Button
+        v-if="stats.total >= MIN_TO_PRACTICE"
+        variant="line"
+        class="mt-2.5"
+        @click="router.push({ name: 'repaso-ejercicios' })"
+      >
+        Practicar con ejercicios
+      </Button>
 
       <!-- Datos (diseño: .l-facts) -->
       <div

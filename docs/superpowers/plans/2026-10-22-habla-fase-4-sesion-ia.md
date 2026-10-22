@@ -679,3 +679,27 @@ src/Views/Sesion/SesionPage.vue  src/Views/Hoy/HoyPage.vue  SesionHoyPanel.vue  
   - **En la computadora, con Chrome:** mantén presionado el micrófono y habla.
   - **El gasto:** revisa con la consulta del README. Una sesión debe costar menos de $0.01.
 - [ ] **Step 4: Commit**: `docs: fase 4 publicada`
+
+---
+
+### Agregado del 2026-10-22: Practicar (ejercicios)
+
+Fernando pidió ejercicios para comprobar si recuerda las frases, además de leerlas. Lo aprobó con este diseño:
+
+- **Un paso nuevo en la sesión:** Repasar → Aprender → **Practicar** → Conversar → Resumen.
+  - Son unos 6 ejercicios con las frases nuevas de hoy, más 2 recientes del repaso (`PhrasesService.GetRecent`).
+- **Tipos** (`src/common/Exercises.ts`), que se turnan por nivel:
+  - Elegir el significado, escuchar y elegir, ordenar las palabras (de 3 a 9 palabras), completar y escribir en inglés.
+  - Escribir solo sale desde A2.
+  - Sin voz del navegador no hay "escuchar".
+  - Si a una frase no le toca un tipo, usa el siguiente.
+- **Completar lo prepara la IA en `start`:**
+  - `LessonExtra` suma `hueco` (copiado tal cual de la frase), `trampas` (2 versiones equivocadas del mismo hueco, típicas de hispanohablantes) y `por_que`.
+  - `parseStartOutput` descarta el ejercicio si el hueco no está en la frase o no hay 2 trampas distintas.
+  - `max_tokens` de `start` sube a 1400.
+- **Pantalla** (`ExerciseDeck`):
+  - Se marca la respuesta y se confirma con "Revisar". Luego sale "Correcto." o "Era: …", con la explicación, en placa verde o azul y nunca en rojo.
+  - Lo que falla vuelve al final, hasta 3 intentos.
+  - El resumen dice "Ejercicios: acertaste X de N a la primera."
+- **Repaso:** "Practicar con ejercicios" (`/repaso/ejercicios`) arma 8 ejercicios con frases recientes, sin IA.
+- **Evaluación:** `npm run ai:eval` revisa que al menos 3 de 4 frases traigan su ejercicio de completar bien armado. En la meta del hotel salieron 3 de 4: la cuarta traía un hueco que no estaba en la frase y se descartó.

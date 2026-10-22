@@ -102,7 +102,12 @@ npm run dev                         # http://localhost:5173
 - **Límites por persona en 24 horas:** 3 preparaciones de sesión, 40 turnos y 3 resúmenes.
   - Cada conversación tiene máximo 10 turnos.
   - En cada sesión entran al repaso máximo 3 correcciones.
-- **Sin IA** (por presupuesto, límite o falla), Repasar y Aprender funcionan igual, Conversar se puede saltar y el resumen sale sin "Lo que hiciste bien".
+- **Practicar (ejercicios, decisión del 2026-10-22):** después de Aprender vienen unos 6 ejercicios con las frases nuevas y 2 de días anteriores.
+  - Hay 5 tipos: elegir el significado, escuchar y elegir, ordenar las palabras, completar y escribir en inglés (este solo desde A2).
+  - Los de completar los prepara la IA en `start`, con 2 trampas típicas y por qué.
+  - Lo que falla vuelve al final, hasta 3 intentos. No hay puntos ni calificación, y no cambia cuándo vuelve cada frase al repaso.
+  - En la pestaña Repaso, "Practicar con ejercicios" arma 8 ejercicios con frases de tu repaso, sin IA.
+- **Sin IA** (por presupuesto, límite o falla), Repasar, Aprender y Practicar funcionan igual, Conversar se puede saltar y el resumen sale sin "Lo que hiciste bien".
 - **Voz:**
   - En Chrome o Edge de computadora y en Android, el micrófono se mantiene presionado mientras hablas.
   - En iPhone se escribe o se dicta con el micrófono del teclado.
