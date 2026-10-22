@@ -19,7 +19,7 @@ const anthropic = new Anthropic({
 });
 
 const COLUMNS =
-  "id, unit_id, date, content, transcript, turns, summary, status, minutes, created_at";
+  "id, kind, unit_id, date, content, transcript, turns, summary, status, minutes, created_at";
 
 export default {
   fetch: withSupabase({ auth: "user" }, async (req, ctx) => {
@@ -40,11 +40,18 @@ export default {
       async getProfile() {
         const { data, error } = await admin
           .from("profiles")
-          .select("level, motive, current_unit_id")
+          .select("level, motive, current_unit_id, ayuda")
           .eq("user_id", userId)
           .maybeSingle();
         if (error) throw error;
         return data;
+      },
+      async saveAyuda(ayuda) {
+        const { error } = await admin
+          .from("profiles")
+          .update({ ayuda })
+          .eq("user_id", userId);
+        if (error) throw error;
       },
       async findSessionByDate(date) {
         const { data, error } = await admin
@@ -52,9 +59,20 @@ export default {
           .select(COLUMNS)
           .eq("user_id", userId)
           .eq("date", date)
+          .eq("kind", "diaria")
           .maybeSingle();
         if (error) throw error;
         return data as SessionRow | null;
+      },
+      async countPracticeSessions(date) {
+        const { count, error } = await admin
+          .from("sessions")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .eq("date", date)
+          .eq("kind", "practica");
+        if (error) throw error;
+        return count ?? 0;
       },
       async getSession(id) {
         const { data, error } = await admin
@@ -72,7 +90,7 @@ export default {
           .insert({ user_id: userId, ...row })
           .select(COLUMNS)
           .single();
-        // 23505: ya existe la sesión de ese día (otra pestaña ganó)
+        // 23505: ya existe la sesión de ese día (otra pestaña ganó); solo pasa con la diaria
         if (error?.code === "23505") return "existe";
         if (error) throw error;
         return data as SessionRow;

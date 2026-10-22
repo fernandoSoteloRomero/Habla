@@ -261,7 +261,7 @@ describe("conversación con la IA", () => {
         const ctx = context(c.unitId, c.level);
         const transcript: Turn[] = [opener(c.opener)];
         const text = await ask(buildTurnParams(ctx, transcript, c.text, false));
-        return { c, out: parseTurnOutput(text, c.level, c.text) };
+        return { c, out: parseTurnOutput(text, c.text) };
       }),
     );
 
@@ -285,8 +285,11 @@ describe("conversación con la IA", () => {
         expect(out.correccion.nota, `${label} nota`).not.toBe("");
         expect(out.correccion.nota, `${label} nota`).not.toMatch(HARSH);
       }
-      if (c.level === "B1") expect(out.sugerencias, label).toEqual([]);
-      else expect(out.sugerencias.length, label).toBeGreaterThan(0);
+      // Las sugerencias (para guiada y con ayuda) traen su traducción
+      expect(out.sugerencias.length, label).toBeGreaterThan(0);
+      out.sugerencias.forEach((s) => {
+        expect(s.es, `${label} ${s.en}`).not.toBe("");
+      });
     }
 
     console.log(
@@ -309,7 +312,7 @@ describe("conversación con la IA", () => {
         .map((f) => `${f.en} → [${f.hueco}] trampas: ${f.trampas.join(", ")}`)
         .join("\n"),
     );
-    const out = parseStartOutput(text, phrases, "A2");
+    const out = parseStartOutput(text, phrases);
     expect(out).not.toBeNull();
     expect(out?.frases.map((f) => f.en)).toEqual(phrases.map((p) => p.en));
     out?.frases.forEach((f) => {

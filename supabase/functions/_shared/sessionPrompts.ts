@@ -11,18 +11,14 @@ import type {
   LessonExtra,
   PersonajeTurn,
   SessionContent,
+  Sugerencia,
   Turn,
 } from "./sessionTypes.ts";
 
-// Apoyo en español según el nivel (spec 5.3)
-export function supportFor(level: LevelId): {
-  translationVisible: boolean;
-  suggestions: boolean;
-} {
-  return {
-    translationVisible: level === "L0" || level === "A1",
-    suggestions: level !== "B1",
-  };
+// Apoyo en español según el nivel (spec 5.3): Nivel 0 y A1 ven la traducción desde el
+// principio. Las frases sugeridas dependen de la ayuda en la conversación (ayuda.ts).
+export function supportFor(level: LevelId): { translationVisible: boolean } {
+  return { translationVisible: level === "L0" || level === "A1" };
 }
 
 export interface SessionContext {
@@ -69,7 +65,7 @@ La corrección (revisa solo el último mensaje de la persona):
 - "nota": por qué suena mejor, en español, de máximo 15 palabras y en tono amable. No uses las palabras "error", "mal" ni "incorrecto".
 - Si "corregir" es false, deja "original", "mejor", "mejor_es" y "nota" vacíos.
 
-"sugerencias": 3 respuestas cortas en inglés, de máximo 6 palabras cada una, que la persona podría decir ahora para seguir la conversación. Si la conversación terminó, deja la lista vacía.
+"sugerencias": 3 respuestas cortas que la persona podría decir ahora para seguir la conversación, distintas entre sí (por ejemplo, una que acepta, una que pide algo más y una pregunta). Cada una con "en" (inglés, de máximo 6 palabras) y "es" (su traducción al español de México). Si la conversación terminó, deja la lista vacía.
 
 "terminada": true cuando la persona ya logró el objetivo de la escena o cuando el sistema avise que es el último turno. En ese caso, en "en" despídete de forma natural y sin hacer otra pregunta.
 
@@ -87,7 +83,7 @@ export const START_SYSTEM = `Preparas la sesión del día en Habla, una app dond
      - "trampas": 2 versiones equivocadas del mismo hueco, como las que escribiría un hispanohablante: otra conjugación, otra preposición, un "to" de más, el orden al revés o una traducción literal del español. Por ejemplo, para "see the menu": "to see the menu" y "seeing the menu"; para "for two": "of two" y "to two"; para "I'm from": "I'm of" y "I from". No uses otra palabra distinta que también tenga sentido en la frase.
      - "por_que": por qué la opción buena es la buena, en español, de máximo 15 palabras.
 2. "apertura_en": lo primero que dice tu personaje para empezar la escena: un saludo corto y una pregunta, del nivel de la persona y de máximo 20 palabras. "apertura_es": su traducción al español de México.
-3. "sugerencias": 3 respuestas cortas en inglés, de máximo 6 palabras cada una, que la persona podría contestar a tu apertura.
+3. "sugerencias": 3 respuestas cortas que la persona podría contestar a tu apertura, distintas entre sí. Cada una con "en" (inglés, de máximo 6 palabras) y "es" (su traducción al español de México).
 
 Las notas le hablan de tú a la persona, en voz activa. ${NO_DECORATION}`;
 
@@ -97,6 +93,15 @@ Escribe en "bien" de 1 a 3 cosas concretas que la persona hizo bien en esta conv
 
 const str = { type: "string" };
 const strList = { type: "array", items: str };
+const suggestionList = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: { en: str, es: str },
+    required: ["en", "es"],
+    additionalProperties: false,
+  },
+};
 
 const TURN_SCHEMA = {
   type: "object",
@@ -108,7 +113,7 @@ const TURN_SCHEMA = {
     mejor: str,
     mejor_es: str,
     nota: str,
-    sugerencias: strList,
+    sugerencias: suggestionList,
     terminada: { type: "boolean" },
   },
   required: [
@@ -155,7 +160,7 @@ const START_SCHEMA = {
     },
     apertura_en: str,
     apertura_es: str,
-    sugerencias: strList,
+    sugerencias: suggestionList,
   },
   required: ["frases", "apertura_en", "apertura_es", "sugerencias"],
   additionalProperties: false,
@@ -233,7 +238,7 @@ export function buildTurnParams(
       : { role: "assistant", content: turnToAssistantJson(t) },
   );
   return {
-    ...baseParams(TURN_SYSTEM, ctx, TURN_SCHEMA, 350, [
+    ...baseParams(TURN_SYSTEM, ctx, TURN_SCHEMA, 500, [
       { role: "user", content: KICKOFF },
       ...history,
       { role: "user", content: lastTurn ? `${text}${LAST_TURN_NOTE}` : text },
@@ -299,6 +304,16 @@ function cleanList(value: unknown, max: number, count: number): string[] {
     .slice(0, count);
 }
 
+// Hasta 3 respuestas sugeridas con su traducción
+function readSuggestions(value: unknown): Sugerencia[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((v): v is Record<string, unknown> => !!v && typeof v === "object")
+    .map((v) => ({ en: clean(v.en, 60), es: clean(v.es, 120) }))
+    .filter((v) => v.en !== "")
+    .slice(0, 3);
+}
+
 // Para comparar sin mayúsculas ni puntuación
 function sameText(a: string, b: string): boolean {
   const norm = (s: string): string =>
@@ -312,7 +327,6 @@ function sameText(a: string, b: string): boolean {
 
 export function parseTurnOutput(
   text: string,
-  level: LevelId,
   original: string,
 ):
   | (Omit<PersonajeTurn, "quien" | "correccion"> & {
@@ -342,9 +356,7 @@ export function parseTurnOutput(
   return {
     en,
     es: clean(data.es, 300),
-    sugerencias: supportFor(level).suggestions
-      ? cleanList(data.sugerencias, 60, 3)
-      : [],
+    sugerencias: readSuggestions(data.sugerencias),
     correccion,
     terminada: data.terminada,
   };
@@ -372,7 +384,6 @@ function readGap(
 export function parseStartOutput(
   text: string,
   phrases: KeyPhrase[],
-  level: LevelId,
 ): Omit<SessionContent, "escena"> | null {
   const data = readJson(text);
   if (!data) return null;
@@ -402,9 +413,7 @@ export function parseStartOutput(
     frases,
     apertura_en: aperturaEn,
     apertura_es: clean(data.apertura_es, 300),
-    sugerencias: supportFor(level).suggestions
-      ? cleanList(data.sugerencias, 60, 3)
-      : [],
+    sugerencias: readSuggestions(data.sugerencias),
   };
 }
 

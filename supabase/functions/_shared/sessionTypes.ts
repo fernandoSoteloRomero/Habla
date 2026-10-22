@@ -4,6 +4,15 @@ import type { Situation } from "./curriculum/units.ts";
 
 export type SessionAction = "start" | "turn" | "close";
 
+// diaria = la sesión de hoy (una por día); practica = conversación extra ("Seguir practicando")
+export type SessionKind = "diaria" | "practica";
+
+// Una respuesta que la persona podría decir, con su traducción (en guiada se elige con un toque)
+export interface Sugerencia {
+  en: string;
+  es: string;
+}
+
 // Lo que la IA agrega a cada frase nueva de Aprender
 export interface LessonExtra {
   en: string;
@@ -24,7 +33,7 @@ export interface SessionContent {
   escena: Situation;
   apertura_en: string;
   apertura_es: string;
-  sugerencias: string[];
+  sugerencias: Sugerencia[];
 }
 
 // Cómo suena mejor algo que dijo la persona. guardada = entró a su repaso.
@@ -44,7 +53,7 @@ export type Turn =
       quien: "personaje";
       en: string;
       es: string;
-      sugerencias: string[];
+      sugerencias: Sugerencia[];
       correccion: Correction | null;
       terminada: boolean;
     };
@@ -61,6 +70,7 @@ export type SessionStatus = "en_curso" | "terminada";
 // La sesión como la ve la app
 export interface SessionView {
   id: string;
+  kind: SessionKind;
   date: string;
   unitId: string;
   status: SessionStatus;

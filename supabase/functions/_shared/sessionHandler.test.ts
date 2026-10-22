@@ -25,7 +25,11 @@ const startOutput = message({
   ],
   apertura_en: "Hi! Are you ready to order?",
   apertura_es: "Hola. ¿Ya sabe qué va a pedir?",
-  sugerencias: ["Yes, please.", "Not yet.", "What do you recommend?"],
+  sugerencias: [
+    { en: "Yes, please.", es: "Sí, por favor." },
+    { en: "Not yet.", es: "Todavía no." },
+    { en: "What do you recommend?", es: "¿Qué me recomienda?" },
+  ],
 });
 const turnOutput = (over: Record<string, unknown> = {}): AiMessage =>
   message({
@@ -36,7 +40,11 @@ const turnOutput = (over: Record<string, unknown> = {}): AiMessage =>
     mejor: "I'd like a burger, please.",
     mejor_es: "Quisiera una hamburguesa, por favor.",
     nota: "“I'd like” suena más amable.",
-    sugerencias: ["A coke, please.", "Water, please.", "No, thanks."],
+    sugerencias: [
+      { en: "A coke, please.", es: "Una coca, por favor." },
+      { en: "Water, please.", es: "Agua, por favor." },
+      { en: "No, thanks.", es: "No, gracias." },
+    ],
     terminada: false,
     ...over,
   });
@@ -77,6 +85,7 @@ function transcriptWith(n: number, corrected = 0): Turn[] {
 function row(over: Partial<SessionRow> = {}): SessionRow {
   return {
     id: SESSION_ID,
+    kind: "diaria",
     unit_id: unit.id,
     date: "2026-10-22",
     content: {
@@ -102,8 +111,11 @@ function fakeDeps(over: Partial<SessionDeps> = {}): SessionDeps {
       level: "A2",
       motive: "viajes",
       current_unit_id: unit.id,
+      ayuda: null,
     }),
+    saveAyuda: vi.fn().mockResolvedValue(undefined),
     findSessionByDate: vi.fn().mockResolvedValue(null),
+    countPracticeSessions: vi.fn().mockResolvedValue(0),
     getSession: vi.fn().mockResolvedValue(row()),
     insertSession: vi.fn(async (r) => row({ ...r })),
     saveTurns: vi.fn().mockResolvedValue(true),
@@ -166,8 +178,9 @@ describe("session: start", () => {
       deps,
     );
     expect(res.status).toBe(200);
-    expect(deps.reserveCall).toHaveBeenCalledWith("session-generate", 3);
+    expect(deps.reserveCall).toHaveBeenCalledWith("session-generate", 6);
     const inserted = vi.mocked(deps.insertSession).mock.calls[0][0];
+    expect(inserted.kind).toBe("diaria");
     expect(inserted.unit_id).toBe(unit.id);
     expect(inserted.date).toBe("2026-10-22");
     expect(inserted.content.escena).toBe(unit.escenas.viajes);
@@ -179,7 +192,11 @@ describe("session: start", () => {
         quien: "personaje",
         en: "Hi! Are you ready to order?",
         es: "Hola. ¿Ya sabe qué va a pedir?",
-        sugerencias: ["Yes, please.", "Not yet.", "What do you recommend?"],
+        sugerencias: [
+          { en: "Yes, please.", es: "Sí, por favor." },
+          { en: "Not yet.", es: "Todavía no." },
+          { en: "What do you recommend?", es: "¿Qué me recomienda?" },
+        ],
         correccion: null,
         terminada: false,
       },
@@ -188,6 +205,32 @@ describe("session: start", () => {
       9,
       expect.objectContaining({ input_tokens: 1000, output_tokens: 100 }),
     );
+  });
+  it("la conversación extra crea otra sesión con la otra escena y sin frases nuevas", async () => {
+    const deps = fakeDeps({
+      createMessage: vi.fn().mockResolvedValue(startOutput),
+    });
+    const res = await handleSession({ ...body, practice: true }, deps);
+    expect(res.status).toBe(200);
+    // No busca la sesión del día: la extra siempre es nueva
+    expect(deps.findSessionByDate).not.toHaveBeenCalled();
+    expect(deps.countPracticeSessions).toHaveBeenCalledWith("2026-10-22");
+    const inserted = vi.mocked(deps.insertSession).mock.calls[0][0];
+    expect(inserted.kind).toBe("practica");
+    // Su motivo es viajes, así que la extra es la de trabajo
+    expect(inserted.content.escena).toBe(unit.escenas.trabajo);
+    expect(inserted.content.frases).toEqual([]);
+    const params = vi.mocked(deps.createMessage).mock.calls[0][0];
+    expect(params.messages[0].content).toContain("Hoy no hay frases nuevas");
+  });
+  it("la segunda conversación extra del día regresa a la escena de su motivo", async () => {
+    const deps = fakeDeps({
+      createMessage: vi.fn().mockResolvedValue(startOutput),
+      countPracticeSessions: vi.fn().mockResolvedValue(1),
+    });
+    await handleSession({ ...body, practice: true }, deps);
+    const inserted = vi.mocked(deps.insertSession).mock.calls[0][0];
+    expect(inserted.content.escena).toBe(unit.escenas.viajes);
   });
   it("sin lugar en el límite responde 429 sin llamar a la IA", async () => {
     const deps = fakeDeps({ reserveCall: vi.fn().mockResolvedValue(null) });
@@ -270,7 +313,11 @@ describe("session: turn", () => {
       quien: "personaje",
       en: "Great choice. Anything to drink?",
       es: "Buena elección. ¿Algo de tomar?",
-      sugerencias: ["A coke, please.", "Water, please.", "No, thanks."],
+      sugerencias: [
+        { en: "A coke, please.", es: "Una coca, por favor." },
+        { en: "Water, please.", es: "Agua, por favor." },
+        { en: "No, thanks.", es: "No, gracias." },
+      ],
       correccion: {
         original: "I want a burger",
         mejor: "I'd like a burger, please.",
@@ -363,16 +410,28 @@ describe("session: close", () => {
     });
     expect(await handleSession(body, deps)).toEqual({
       status: 200,
-      body: { summary, minutes: 12 },
+      body: {
+        summary,
+        minutes: 12,
+        ayuda: "con_ayuda",
+        siguiente: "conversar",
+      },
     });
     expect(deps.closeSession).not.toHaveBeenCalled();
+    expect(deps.saveAyuda).not.toHaveBeenCalled();
   });
-  it("si la persona no habló, cierra sin IA", async () => {
+  it("si la persona no habló, cierra sin IA y la próxima tiene más ayuda", async () => {
     const deps = fakeDeps();
     expect(await handleSession(body, deps)).toEqual({
       status: 200,
-      body: { summary: { bien: [], correcciones: [] }, minutes: 20 },
+      body: {
+        summary: { bien: [], correcciones: [] },
+        minutes: 20,
+        ayuda: "guiada",
+        siguiente: "ejercicios",
+      },
     });
+    expect(deps.saveAyuda).toHaveBeenCalledWith("guiada");
     expect(deps.createMessage).not.toHaveBeenCalled();
     expect(deps.closeSession).toHaveBeenCalledWith(
       SESSION_ID,
@@ -388,7 +447,7 @@ describe("session: close", () => {
       createMessage: vi.fn().mockResolvedValue(closeOutput),
     });
     const res = await handleSession(body, deps);
-    expect(deps.reserveCall).toHaveBeenCalledWith("session-close", 3);
+    expect(deps.reserveCall).toHaveBeenCalledWith("session-close", 6);
     expect(res.body).toMatchObject({
       summary: { bien: ["Pediste tu comida completa"] },
       minutes: 20,
@@ -398,6 +457,37 @@ describe("session: close", () => {
     expect(
       summary.correcciones.map((c) => (c as { mejor: string }).mejor),
     ).toEqual(["Mejor 0", "Mejor 1", "Mejor 2"]);
+  });
+  it("si le salió bien con sus palabras, la próxima tiene menos ayuda y le propone conversar", async () => {
+    const deps = fakeDeps({
+      getSession: vi
+        .fn()
+        .mockResolvedValue(row({ transcript: transcriptWith(4, 1), turns: 4 })),
+      createMessage: vi.fn().mockResolvedValue(closeOutput),
+    });
+    expect((await handleSession(body, deps)).body).toMatchObject({
+      ayuda: "libre",
+      siguiente: "conversar",
+    });
+    expect(deps.saveAyuda).toHaveBeenCalledWith("libre");
+  });
+  it("si le costó (la mitad o más con corrección), le propone ejercicios", async () => {
+    const deps = fakeDeps({
+      getProfile: vi.fn().mockResolvedValue({
+        level: "B1",
+        motive: "viajes",
+        current_unit_id: unit.id,
+        ayuda: null,
+      }),
+      getSession: vi
+        .fn()
+        .mockResolvedValue(row({ transcript: transcriptWith(4, 2), turns: 4 })),
+      createMessage: vi.fn().mockResolvedValue(closeOutput),
+    });
+    expect((await handleSession(body, deps)).body).toMatchObject({
+      ayuda: "con_ayuda",
+      siguiente: "ejercicios",
+    });
   });
   it("sin lugar en el límite o sin presupuesto, cierra igual sin 'lo que hiciste bien'", async () => {
     for (const over of [

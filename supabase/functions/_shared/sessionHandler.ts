@@ -1,8 +1,10 @@
 // Flujo completo de la Edge Function `session` (spec 5.3 y 7.1), con la base y la IA inyectadas
 // para que Vitest lo pruebe sin gastar. index.ts solo conecta las dependencias reales.
-// - start: prepara la sesión del día (o regresa la que ya existe, sin gastar).
+// - start: prepara la sesión del día (o regresa la que ya existe, sin gastar). Con
+//   `practice: true`, una conversación extra ("Seguir practicando") con la otra escena.
 // - turn: un turno de la conversación; el historial vive en la base, no lo manda la app.
-// - close: el resumen. Siempre termina la sesión, aunque la IA no esté disponible.
+// - close: el resumen. Siempre termina la sesión, aunque la IA no esté disponible, y ajusta
+//   la ayuda de la próxima conversación según cómo le fue (ayuda.ts).
 import { callAi } from "./aiCall.ts";
 import type {
   AiCallDeps,
@@ -10,8 +12,11 @@ import type {
   MessageParams,
   UsageTotals,
 } from "./aiCall.ts";
+import { ayudaFor, conversationStats, nextAyuda } from "./ayuda.ts";
+import type { Ayuda } from "./ayuda.ts";
 import type { LevelId } from "./curriculum/levels.ts";
 import { getUnit, sceneFor } from "./curriculum/units.ts";
+import type { Situation } from "./curriculum/units.ts";
 import {
   CONVERSATION_TURN_DAILY_MAX,
   MAX_SAVED_CORRECTIONS,
@@ -33,6 +38,7 @@ import type {
   PersonajeTurn,
   SessionContent,
   SessionErrorCode,
+  SessionKind,
   SessionStatus,
   SessionSummary,
   SessionView,
@@ -49,11 +55,13 @@ export interface SessionProfile {
   level: LevelId;
   motive: Motive;
   current_unit_id: string;
+  ayuda: Ayuda | null;
 }
 
 // Fila de public.sessions como la lee la función
 export interface SessionRow {
   id: string;
+  kind: SessionKind;
   unit_id: string;
   date: string;
   content: SessionContent;
@@ -66,6 +74,7 @@ export interface SessionRow {
 }
 
 export interface NewSessionRow {
+  kind: SessionKind;
   unit_id: string;
   date: string;
   content: SessionContent;
@@ -74,8 +83,11 @@ export interface NewSessionRow {
 
 export interface SessionDeps extends AiCallDeps {
   getProfile(): Promise<SessionProfile | null>;
-  // Las dos filtran por la persona de la sesión de Supabase
+  saveAyuda(ayuda: Ayuda): Promise<void>;
+  // Todas filtran por la persona de la sesión de Supabase.
+  // findSessionByDate solo busca la sesión del día (kind = 'diaria').
   findSessionByDate(date: string): Promise<SessionRow | null>;
+  countPracticeSessions(date: string): Promise<number>;
   getSession(id: string): Promise<SessionRow | null>;
   // "existe" si otra petición ya creó la sesión de ese día (unique)
   insertSession(row: NewSessionRow): Promise<SessionRow | "existe">;
@@ -132,6 +144,7 @@ function ok(body: unknown): HandlerResponse {
 function toView(row: SessionRow): SessionView {
   return {
     id: row.id,
+    kind: row.kind,
     date: row.date,
     unitId: row.unit_id,
     status: row.status,
@@ -185,11 +198,22 @@ async function spend<T>(
   return result;
 }
 
+// La conversación extra usa la otra escena de la meta y, si se repite, se van turnando
+function practiceScene(
+  daily: Situation,
+  escenas: { trabajo: Situation; viajes: Situation },
+  practicedToday: number,
+): Situation {
+  const other = daily === escenas.trabajo ? escenas.viajes : escenas.trabajo;
+  return practicedToday % 2 === 0 ? other : daily;
+}
+
 async function handleStart(
   body: Record<string, unknown>,
   deps: SessionDeps,
 ): Promise<HandlerResponse> {
   const { date, newEn } = body;
+  const practice = body.practice === true;
   if (
     !isValidDate(date) ||
     !Array.isArray(newEn) ||
@@ -201,9 +225,14 @@ async function handleStart(
 
   let profile: SessionProfile | null;
   let reservation: number | null;
+  let practicedToday = 0;
   try {
-    const existing = await deps.findSessionByDate(date);
-    if (existing) return ok({ session: toView(existing) });
+    if (practice) {
+      practicedToday = await deps.countPracticeSessions(date);
+    } else {
+      const existing = await deps.findSessionByDate(date);
+      if (existing) return ok({ session: toView(existing) });
+    }
     profile = await deps.getProfile();
     if (!profile) return fail("datos");
     reservation = await deps.reserveCall(
@@ -216,24 +245,28 @@ async function handleStart(
   if (reservation === null) return fail("limite");
 
   const unit = getUnit(profile.current_unit_id);
-  const scene = sceneFor(unit, profile.motive, date);
+  const daily = sceneFor(unit, profile.motive, date);
+  const scene = practice
+    ? practiceScene(daily, unit.escenas, practicedToday)
+    : daily;
   const ctx: SessionContext = {
     unit,
     level: profile.level,
     motive: profile.motive,
     scene,
   };
-  // Solo frases de la meta: lo demás que mande la app se ignora
-  const phrases = unit.frases_clave.filter((f) =>
-    (newEn as string[]).some((en) => sameText(en, f.en)),
-  );
-  const level = profile.level;
+  // Solo frases de la meta (lo demás que mande la app se ignora); en la extra no hay frases nuevas
+  const phrases = practice
+    ? []
+    : unit.frases_clave.filter((f) =>
+        (newEn as string[]).some((en) => sameText(en, f.en)),
+      );
 
   const result = await spend(
     deps,
     reservation,
     buildStartParams(ctx, phrases),
-    (text) => parseStartOutput(text, phrases, level),
+    (text) => parseStartOutput(text, phrases),
   );
   if (!result.ok) return fail(result.error);
 
@@ -249,6 +282,7 @@ async function handleStart(
 
   try {
     const inserted = await deps.insertSession({
+      kind: practice ? "practica" : "diaria",
       unit_id: unit.id,
       date,
       content,
@@ -316,12 +350,11 @@ async function handleTurn(
     motive: profile.motive,
     scene: session.content.escena,
   };
-  const level = profile.level;
   const result = await spend(
     deps,
     reservation,
     buildTurnParams(ctx, session.transcript, text, lastTurn),
-    (output) => parseTurnOutput(output, level, text),
+    (output) => parseTurnOutput(output, text),
   );
   if (!result.ok) return fail(result.error);
 
@@ -391,10 +424,15 @@ async function handleClose(
   if (!session) return fail("datos");
 
   const correcciones = corrections(session.transcript).slice(0, 3);
+  const currentAyuda = profile
+    ? ayudaFor(profile.level, profile.ayuda)
+    : "con_ayuda";
   if (session.status === "terminada") {
     return ok({
       summary: session.summary ?? { bien: [], correcciones },
       minutes: session.minutes ?? 0,
+      ayuda: currentAyuda,
+      siguiente: "conversar",
     });
   }
 
@@ -435,7 +473,25 @@ async function handleClose(
   } catch {
     return fail("servidor");
   }
-  return ok({ summary, minutes });
+
+  // La ayuda de la próxima conversación, según cómo le fue; y qué le conviene practicar ahora
+  const { ayuda, struggled } = nextAyuda(
+    currentAyuda,
+    conversationStats(session.transcript),
+  );
+  if (profile && ayuda !== currentAyuda) {
+    try {
+      await deps.saveAyuda(ayuda);
+    } catch {
+      // se queda la de antes
+    }
+  }
+  return ok({
+    summary,
+    minutes,
+    ayuda,
+    siguiente: struggled ? "ejercicios" : "conversar",
+  });
 }
 
 export async function handleSession(

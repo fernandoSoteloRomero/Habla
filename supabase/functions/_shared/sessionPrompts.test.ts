@@ -27,7 +27,11 @@ const opener: PersonajeTurn = {
   quien: "personaje",
   en: "Hi! Welcome to Sam's Diner. Are you ready to order?",
   es: "Hola, bienvenido a Sam's Diner. ¿Ya sabe qué va a pedir?",
-  sugerencias: ["Yes, please.", "Not yet.", "What do you recommend?"],
+  sugerencias: [
+    { en: "Yes, please.", es: "Sí, por favor." },
+    { en: "Not yet.", es: "Todavía no." },
+    { en: "What do you recommend?", es: "¿Qué me recomienda?" },
+  ],
   correccion: null,
   terminada: false,
 };
@@ -41,29 +45,22 @@ const turnJson = (over: Record<string, unknown> = {}): string =>
     mejor: "I'd like a hamburger, please.",
     mejor_es: "Quisiera una hamburguesa, por favor.",
     nota: "“I'd like” suena más amable que “I want” al pedir.",
-    sugerencias: ["Yes, please.", "No, thank you.", "How much is it?", "Extra"],
+    sugerencias: [
+      { en: "Yes, please.", es: "Sí, por favor." },
+      { en: "No, thank you.", es: "No, gracias." },
+      { en: "How much is it?", es: "¿Cuánto es?" },
+      { en: "Extra", es: "De más" },
+    ],
     terminada: false,
     ...over,
   });
 
 describe("apoyo en español por nivel", () => {
-  it("L0 y A1 con traducción visible y sugerencias; A2 con sugerencias; B1 sin nada", () => {
-    expect(supportFor("L0")).toEqual({
-      translationVisible: true,
-      suggestions: true,
-    });
-    expect(supportFor("A1")).toEqual({
-      translationVisible: true,
-      suggestions: true,
-    });
-    expect(supportFor("A2")).toEqual({
-      translationVisible: false,
-      suggestions: true,
-    });
-    expect(supportFor("B1")).toEqual({
-      translationVisible: false,
-      suggestions: false,
-    });
+  it("Nivel 0 y A1 ven la traducción desde el principio; A2 y B1 con un toque", () => {
+    expect(supportFor("L0")).toEqual({ translationVisible: true });
+    expect(supportFor("A1")).toEqual({ translationVisible: true });
+    expect(supportFor("A2")).toEqual({ translationVisible: false });
+    expect(supportFor("B1")).toEqual({ translationVisible: false });
   });
 });
 
@@ -114,11 +111,11 @@ describe("buildTurnParams", () => {
     const p = buildTurnParams(ctx(), transcript, "A coke.", true);
     expect(p.messages.at(-1)?.content).toBe(`A coke.${LAST_TURN_NOTE}`);
   });
-  it("usa Haiku sin pensamiento, effort low, caché automática y 350 tokens", () => {
+  it("usa Haiku sin pensamiento, effort low, caché automática y 500 tokens", () => {
     const p = buildTurnParams(ctx(), transcript, "A coke.", false);
     expect(p).toMatchObject({
       model: "claude-haiku-5-5",
-      max_tokens: 350,
+      max_tokens: 500,
       thinking: { type: "disabled" },
       output_config: { effort: "low", format: { type: "json_schema" } },
       cache_control: { type: "ephemeral" },
@@ -143,11 +140,15 @@ describe("buildTurnParams", () => {
 
 describe("parseTurnOutput", () => {
   it("lee la respuesta con su corrección y deja máximo 3 sugerencias", () => {
-    const out = parseTurnOutput(turnJson(), "A2", "Yes. I want a hamburger.");
+    const out = parseTurnOutput(turnJson(), "Yes. I want a hamburger.");
     expect(out).toEqual({
       en: "Great choice. Would you like fries with that?",
       es: "Buena elección. ¿Quiere papas con eso?",
-      sugerencias: ["Yes, please.", "No, thank you.", "How much is it?"],
+      sugerencias: [
+        { en: "Yes, please.", es: "Sí, por favor." },
+        { en: "No, thank you.", es: "No, gracias." },
+        { en: "How much is it?", es: "¿Cuánto es?" },
+      ],
       correccion: {
         original: "I want a hamburger",
         mejor: "I'd like a hamburger, please.",
@@ -157,45 +158,53 @@ describe("parseTurnOutput", () => {
       terminada: false,
     });
   });
-  it("en B1 no hay sugerencias", () => {
-    expect(parseTurnOutput(turnJson(), "B1", "x")?.sugerencias).toEqual([]);
+  it("las sugerencias traen su traducción; descarta las que no tienen inglés", () => {
+    const out = parseTurnOutput(
+      turnJson({
+        sugerencias: [
+          { en: "", es: "Vacía" },
+          "solo texto",
+          { en: "Water, please.", es: "Agua, por favor." },
+        ],
+      }),
+      "x",
+    );
+    expect(out?.sugerencias).toEqual([
+      { en: "Water, please.", es: "Agua, por favor." },
+    ]);
   });
   it("descarta la corrección si no corrige, si está vacía o si es igual a lo que dijo", () => {
     expect(
-      parseTurnOutput(turnJson({ corregir: false }), "A2", "x")?.correccion,
+      parseTurnOutput(turnJson({ corregir: false }), "x")?.correccion,
     ).toBeNull();
     expect(
-      parseTurnOutput(turnJson({ mejor: " " }), "A2", "x")?.correccion,
+      parseTurnOutput(turnJson({ mejor: " " }), "x")?.correccion,
     ).toBeNull();
     expect(
       parseTurnOutput(
         turnJson({ mejor: "Yes, I want a hamburger." }),
-        "A2",
         "yes i want a hamburger",
       )?.correccion,
     ).toBeNull();
   });
   it("si la IA no dice qué parte cambiar, usa el mensaje completo", () => {
     expect(
-      parseTurnOutput(turnJson({ original: "" }), "A2", "I want burger")
-        ?.correccion?.original,
+      parseTurnOutput(turnJson({ original: "" }), "I want burger")?.correccion
+        ?.original,
     ).toBe("I want burger");
   });
   it("recorta la nota a 140 caracteres y quita los signos de apertura", () => {
     const out = parseTurnOutput(
       turnJson({ nota: "x".repeat(200), es: "¡Claro! ¿Algo más?" }),
-      "A2",
       "x",
     );
     expect(out?.correccion?.nota).toHaveLength(140);
     expect(out?.es).toBe("Claro! ¿Algo más?");
   });
   it("con un JSON inválido o sin 'en' regresa null", () => {
-    expect(parseTurnOutput("no es json", "A2", "x")).toBeNull();
-    expect(parseTurnOutput(turnJson({ en: " " }), "A2", "x")).toBeNull();
-    expect(
-      parseTurnOutput(turnJson({ terminada: "si" }), "A2", "x"),
-    ).toBeNull();
+    expect(parseTurnOutput("no es json", "x")).toBeNull();
+    expect(parseTurnOutput(turnJson({ en: " " }), "x")).toBeNull();
+    expect(parseTurnOutput(turnJson({ terminada: "si" }), "x")).toBeNull();
   });
 });
 
@@ -227,9 +236,14 @@ describe("start y close", () => {
       ],
       apertura_en: "Hi! Ready to order?",
       apertura_es: "Hola. ¿Lista para pedir?",
-      sugerencias: ["Yes.", "No.", "Water, please.", "Extra."],
+      sugerencias: [
+        { en: "Yes.", es: "Sí." },
+        { en: "No.", es: "No." },
+        { en: "Water, please.", es: "Agua, por favor." },
+        { en: "Extra.", es: "De más." },
+      ],
     });
-    const out = parseStartOutput(text, phrases, "A2");
+    const out = parseStartOutput(text, phrases);
     expect(out?.frases.map((f) => f.en)).toEqual([
       phrases[0].en,
       phrases[1].en,
@@ -264,7 +278,6 @@ describe("start y close", () => {
           sugerencias: [],
         }),
         [phrase],
-        "A2",
       )?.frases[0];
 
     // Se toma como aparece en la frase, aunque la IA cambie mayúsculas
@@ -299,7 +312,6 @@ describe("start y close", () => {
           sugerencias: [],
         }),
         [],
-        "A2",
       ),
     ).toBeNull();
   });
