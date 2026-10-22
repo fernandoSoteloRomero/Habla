@@ -16,7 +16,7 @@
     "db:push": "node scripts/db.mjs push",
     "db:check-auth": "node scripts/db.mjs check-auth",
     "db:secrets": "node scripts/db.mjs secrets",
-    "fn:deploy": "supabase functions deploy placement --use-api",
+    "fn:deploy": "supabase functions deploy --use-api",
     "generate-pwa-assets": "pwa-assets-generator",
     "deploy": "npm run build && wrangler deploy"
   },
