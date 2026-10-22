@@ -80,6 +80,7 @@ const opener: PersonajeTurn = {
 function aiSession(over: Partial<SessionView> = {}): SessionView {
   return {
     id: "s1",
+    kind: "diaria",
     date: "2026-10-22",
     unitId: unit.id,
     status: "en_curso",
@@ -181,6 +182,8 @@ describe("SesionPage", () => {
         ],
       },
       minutes: 18,
+      ayuda: "libre",
+      siguiente: "conversar",
     });
     const w = await setup(2, []);
     // La IA se prepara al abrir, sin esperar a que termine el repaso
@@ -241,6 +244,15 @@ describe("SesionPage", () => {
     expect(w.text()).toContain("Aprendiste 4 frases nuevas");
     expect(w.text()).toContain("Ejercicios: acertaste 1 de 1 a la primera");
     expect(w.text()).toContain("Agregamos 5 frases a tu repaso.");
+    // La función ajustó la ayuda de la próxima y le propone otra conversación (en rosa)
+    expect(useAuthStore().profile?.ayuda).toBe("libre");
+    const keep = w.get('[data-testid="seguir-practicando"]');
+    expect(keep.text()).toContain("Seguir practicando");
+    const other = keep
+      .findAll("button")
+      .find((b) => b.text() === "Otra conversación");
+    expect(other?.classes()).toContain("bg-rosa");
+    expect(keep.text()).toContain("Practicar con ejercicios");
     await click(w, "Terminar");
     await vi.waitFor(() => expect(router.currentRoute.value.name).toBe("hoy"));
   });
@@ -267,6 +279,9 @@ describe("SesionPage", () => {
     expect(w.text()).not.toContain("Lo que hiciste bien");
     expect(w.text()).toContain("Aprendiste 4 frases nuevas");
     expect(SessionService.Close).not.toHaveBeenCalled();
+    // Sin IA no se ofrece otra conversación, pero sí ejercicios
+    expect(w.text()).not.toContain("Otra conversación");
+    expect(w.text()).toContain("Practicar con ejercicios");
   });
   it("si la IA falló al preparar, 'Intentar de nuevo' la vuelve a llamar", async () => {
     vi.mocked(SessionService.Start)
@@ -320,6 +335,8 @@ describe("SesionPage", () => {
       .mockResolvedValueOnce({
         summary: { bien: [], correcciones: [] },
         minutes: 5,
+        ayuda: "con_ayuda",
+        siguiente: "ejercicios",
       });
     const w = await setup(0, allLearned);
     await click(w, "Terminar conversación");

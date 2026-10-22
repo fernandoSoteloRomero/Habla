@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { ayudaFor } from "@shared/ayuda";
 import ConversationView from "@/components/ConversationView.vue";
 import ExerciseDeck from "@/components/ExerciseDeck.vue";
+import KeepPracticing from "@/components/KeepPracticing.vue";
 import LessonDeck from "@/components/LessonDeck.vue";
+import NoticeBox from "@/components/NoticeBox.vue";
 import ReviewDeck from "@/components/ReviewDeck.vue";
 import SessionSteps from "@/components/SessionSteps.vue";
+import SummaryBlock from "@/components/SummaryBlock.vue";
 import { Button } from "@/components/ui/button";
+import { aiNotice } from "@/common/AiNotice";
 import { budgetMonthText } from "@/common/BudgetMonth";
 import { localDate } from "@/common/Dates";
 import { buildExercises } from "@/common/Exercises";
@@ -21,6 +26,7 @@ import SessionService, {
 } from "@/Services/Session/SessionService";
 import type { Phrase } from "@/Services/interfaces/Phrases/PhraseInterface";
 import type {
+  Ayuda,
   SessionClientError,
   SessionSummary,
   SessionView,
@@ -67,6 +73,12 @@ const startError = ref<SessionClientError | null>(null);
 const summary = ref<SessionSummary | null>(null);
 const minutes = ref<number | null>(null);
 const closeError = ref<SessionClientError | null>(null);
+// Qué le conviene practicar después (lo decide la función según cómo le fue)
+const next = ref<"conversar" | "ejercicios">("conversar");
+// Cuánta ayuda tiene en la conversación: la que eligió o la de su nivel
+const ayuda = computed(() =>
+  ayudaFor(auth.profile?.level ?? "L0", auth.profile?.ayuda ?? null),
+);
 
 // En la mini línea, "cerrando" ya cuenta como el resumen
 const step = computed<
@@ -183,68 +195,29 @@ async function close(): Promise<void> {
     const closed = await SessionService.Close(session.value.id);
     summary.value = closed.summary;
     minutes.value = closed.minutes;
+    next.value = closed.siguiente;
+    // La ayuda de la próxima conversación ya la guardó la función
+    auth.applyAyuda(closed.ayuda);
     stage.value = "resumen";
   } catch (error) {
     closeError.value = error instanceof SessionError ? error.code : "ia";
   }
 }
 
-// Avisos cuando la IA no pudo preparar la conversación o el resumen
-function noticeFor(code: SessionClientError): {
-  tone: string;
-  icon: string;
-  title: string;
-  body: string;
-  retry: string;
-} {
-  switch (code) {
-    case "presupuesto":
-      return {
-        tone: "bg-yellow",
-        icon: "#i-wallet",
-        title: `Se terminó el presupuesto de IA de ${budget.mes}`,
-        body: `Vuelve el ${budget.siguiente}. El repaso sigue disponible.`,
-        retry: "",
-      };
-    case "limite":
-      return {
-        tone: "bg-concrete",
-        icon: "#i-clock",
-        title: "Ya practicaste mucho hoy",
-        body: "Vuelve mañana o repasa tus frases.",
-        retry: "",
-      };
-    case "sin-conexion":
-      return {
-        tone: "bg-concrete",
-        icon: "#i-nowifi",
-        title: "Sin conexión a internet",
-        body: "Lo que hiciste hoy está guardado. Revisa tu conexión y vuelve a intentar.",
-        retry: "Intentar de nuevo",
-      };
-    case "sesion":
-      return {
-        tone: "bg-concrete",
-        icon: "#i-group",
-        title: "Tu sesión se cerró",
-        body: "Vuelve a entrar con Google para seguir.",
-        retry: "",
-      };
-    default:
-      return {
-        tone: "bg-concrete",
-        icon: "#i-clock",
-        title: "La IA no respondió",
-        body: "Lo intentamos dos veces. Prueba de nuevo en un minuto.",
-        retry: "Intentar de nuevo",
-      };
+// "Más ayuda" / "Menos ayuda": si no se pudo guardar, se queda la de antes
+async function changeAyuda(value: Ayuda): Promise<void> {
+  try {
+    await auth.setAyuda(value);
+  } catch (error) {
+    console.error(error);
   }
 }
+
 const startNotice = computed(() =>
-  startError.value ? noticeFor(startError.value) : null,
+  startError.value ? aiNotice(startError.value, budget) : null,
 );
 const closeNotice = computed(() =>
-  closeError.value ? noticeFor(closeError.value) : null,
+  closeError.value ? aiNotice(closeError.value, budget) : null,
 );
 
 onMounted(load);
@@ -309,6 +282,8 @@ onMounted(load);
           v-if="session && auth.profile"
           :session="session"
           :level="auth.profile.level"
+          :ayuda="ayuda"
+          @ayuda="changeAyuda"
           @done="close"
         />
         <p v-else-if="starting" class="text-sm text-ink-2" aria-live="polite">
@@ -316,32 +291,7 @@ onMounted(load);
         </p>
         <template v-else-if="startNotice">
           <div class="flex-1" />
-          <div
-            class="mb-3 flex gap-[11px] rounded-xl p-3 text-sm leading-snug"
-            :class="startNotice.tone"
-          >
-            <span
-              class="grid size-8 shrink-0 place-items-center rounded-[7px] bg-ink"
-            >
-              <svg class="size-[19px] fill-white">
-                <use :href="startNotice.icon" />
-              </svg>
-            </span>
-            <div>
-              <b class="mb-0.5 block">{{ startNotice.title }}</b>
-              {{ startNotice.body }}
-              <template v-if="startNotice.retry">
-                <br />
-                <button
-                  type="button"
-                  class="mt-1.5 font-bold text-l1 underline underline-offset-[3px]"
-                  @click="startSession"
-                >
-                  {{ startNotice.retry }}
-                </button>
-              </template>
-            </div>
-          </div>
+          <NoticeBox :notice="startNotice" class="mb-3" @retry="startSession" />
           <Button variant="quiet" @click="stage = 'resumen'">
             Saltar la conversación
           </Button>
@@ -355,32 +305,7 @@ onMounted(load);
         </p>
         <template v-else>
           <div class="flex-1" />
-          <div
-            class="mb-3 flex gap-[11px] rounded-xl p-3 text-sm leading-snug"
-            :class="closeNotice.tone"
-          >
-            <span
-              class="grid size-8 shrink-0 place-items-center rounded-[7px] bg-ink"
-            >
-              <svg class="size-[19px] fill-white">
-                <use :href="closeNotice.icon" />
-              </svg>
-            </span>
-            <div>
-              <b class="mb-0.5 block">{{ closeNotice.title }}</b>
-              {{ closeNotice.body }}
-              <template v-if="closeNotice.retry">
-                <br />
-                <button
-                  type="button"
-                  class="mt-1.5 font-bold text-l1 underline underline-offset-[3px]"
-                  @click="close"
-                >
-                  {{ closeNotice.retry }}
-                </button>
-              </template>
-            </div>
-          </div>
+          <NoticeBox :notice="closeNotice" class="mb-3" @retry="close" />
         </template>
       </template>
 
@@ -396,37 +321,7 @@ onMounted(load);
           <template v-else>En {{ unit.titulo_es }}.</template>
         </p>
 
-        <template v-if="summary && summary.bien.length > 0">
-          <h2 class="mt-4 text-[15px] font-bold">Lo que hiciste bien</h2>
-          <ul class="mt-1.5 flex flex-col gap-1.5 text-base">
-            <li v-for="item in summary.bien" :key="item" class="flex gap-2">
-              <svg
-                viewBox="0 0 24 24"
-                class="mt-px size-4 shrink-0 fill-none stroke-l2 stroke-[3.2]"
-              >
-                <use href="#i-check" />
-              </svg>
-              {{ item }}
-            </li>
-          </ul>
-        </template>
-
-        <template v-if="summary && summary.correcciones.length > 0">
-          <h2 class="mt-3.5 text-[15px] font-bold">Para la próxima</h2>
-          <div
-            class="mt-1.5 flex flex-col gap-1 rounded-[4px_10px_10px_4px] border-l-[5px] border-l2 bg-l2-soft px-[11px] py-[9px] text-sm leading-snug"
-          >
-            <p
-              v-for="fix in summary.correcciones"
-              :key="fix.mejor"
-              class="flex flex-wrap items-baseline gap-x-2"
-              lang="en"
-            >
-              <s class="text-ink-2">{{ fix.original }}</s>
-              <b>{{ fix.mejor }}</b>
-            </p>
-          </div>
-        </template>
+        <SummaryBlock :summary="summary" />
 
         <ul class="mt-4 flex flex-col gap-1.5 text-base">
           <li v-if="reviewed > 0" class="flex gap-2">
@@ -467,8 +362,14 @@ onMounted(load);
         <p v-if="added > 0" class="mt-3 text-xs text-ink-2">
           Agregamos {{ added }} frases a tu repaso.
         </p>
+        <!-- Sin IA (no hubo sesión de IA) no se ofrece otra conversación -->
+        <KeepPracticing :recommended="next" :can-converse="!!session" />
         <div class="flex-1" />
-        <Button class="mt-6" @click="router.push({ name: 'hoy' })">
+        <Button
+          variant="quiet"
+          class="mt-6"
+          @click="router.push({ name: 'hoy' })"
+        >
           Terminar
         </Button>
       </template>
