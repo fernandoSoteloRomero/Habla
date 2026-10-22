@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getGreeting } from "./Greeting";
+import { getGreeting, practiceDaysText } from "./Greeting";
 
 const at = (h: number): Date => new Date(2026, 9, 19, h, 30);
 
@@ -23,5 +23,13 @@ describe("getGreeting", () => {
   });
   it("sin nombre solo saluda", () => {
     expect(getGreeting(at(15), "")).toBe("Buenas tardes.");
+  });
+});
+
+describe("practiceDaysText", () => {
+  it("cuenta los días de práctica de la semana, sin castigar si es 0", () => {
+    expect(practiceDaysText(0)).toBe("");
+    expect(practiceDaysText(1)).toBe("Esta semana practicaste 1 día.");
+    expect(practiceDaysText(4)).toBe("Esta semana practicaste 4 días.");
   });
 });

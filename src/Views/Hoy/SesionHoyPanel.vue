@@ -12,17 +12,21 @@ const props = defineProps<{
   newCount: number;
   unitDone: boolean;
   status: "cargando" | "listo" | "error";
+  sessionStatus: "ninguna" | "en_curso" | "terminada";
+  // El personaje de la conversación de hoy ("el mesero")
+  personaje: string;
 }>();
 const emit = defineEmits<{ retry: [] }>();
 
 const router = useRouter();
 const auth = useAuthStore();
 
-// ~36 s por repaso y ~90 s por frase nueva
+// ~36 s por repaso, ~90 s por frase nueva y ~10 minutos de conversación y resumen
 const minutes = computed(() =>
-  Math.ceil(props.pending * 0.6 + props.newCount * 1.5),
+  Math.ceil(props.pending * 0.6 + props.newCount * 1.5 + 10),
 );
-const canStart = computed(() => props.pending + props.newCount > 0);
+// Siempre hay conversación, hasta que la sesión de hoy termina
+const canStart = computed(() => props.sessionStatus !== "terminada");
 
 const steps = computed(() => [
   {
@@ -42,7 +46,7 @@ const steps = computed(() => [
           : "Ya aprendiste tus frases nuevas de hoy",
     muted: props.newCount === 0,
   },
-  { text: "Conversar (llega pronto)", muted: true },
+  { text: `Conversar con ${props.personaje}`, muted: false },
   { text: "Ver tu resumen", muted: false },
 ]);
 
@@ -118,9 +122,11 @@ async function advance(): Promise<void> {
         </li>
       </ol>
       <Button v-if="canStart" @click="router.push({ name: 'sesion' })">
-        Empezar sesión
+        {{
+          sessionStatus === "en_curso" ? "Continuar sesión" : "Empezar sesión"
+        }}
       </Button>
-      <p v-else-if="!unitDone" class="text-sm font-bold">
+      <p v-else class="text-sm font-bold">
         Ya hiciste tu sesión de hoy. Vuelve mañana.
       </p>
       <template v-if="unitDone">
@@ -131,11 +137,11 @@ async function advance(): Promise<void> {
           <p v-if="advanceError" class="mt-2 mb-2 text-sm leading-snug">
             {{ advanceError }}
           </p>
-          <!-- Si hay sesión, la acción rosa es "Empezar sesión" y esta va secundaria -->
+          <!-- Mientras la sesión de hoy no termine, la acción rosa es la sesión y esta va secundaria -->
           <Button
             data-testid="avance"
             :variant="canStart ? 'line' : 'go'"
-            :class="{ 'mt-2': canStart }"
+            class="mt-2"
             :disabled="advancing"
             @click="advance"
           >

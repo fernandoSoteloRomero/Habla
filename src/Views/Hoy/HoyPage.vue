@@ -1,21 +1,37 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import LineaVertical from "@/components/LineaVertical.vue";
-import { localDate } from "@/common/Dates";
-import { getGreeting } from "@/common/Greeting";
+import { localDate, weekStart } from "@/common/Dates";
+import { getGreeting, practiceDaysText } from "@/common/Greeting";
 import { allLearned, pickNewPhrases } from "@/common/LessonPicker";
 import { getLevel } from "@/curriculum/levels";
-import { getUnit, units } from "@/curriculum/units";
+import { getUnit, sceneFor, units } from "@/curriculum/units";
 import PhrasesService from "@/Services/Phrases/PhrasesService";
+import SessionService from "@/Services/Session/SessionService";
+import type { TodayStatus } from "@/Services/interfaces/Session/SessionInterface";
 import { useAuthStore } from "@/stores/auth";
 import SesionHoyPanel from "./SesionHoyPanel.vue";
 
 const auth = useAuthStore();
+// "Hoy" en el teléfono (para la escena del día y los días de práctica)
+const today = localDate(new Date());
 
 const current = computed(() => getUnit(auth.profile?.current_unit_id ?? ""));
 const level = computed(() => getLevel(current.value.nivel));
+const practiceDays = ref(0);
+// "Buenas tardes, Fernando. Esta semana practicaste 4 días."
 const greeting = computed(() =>
-  getGreeting(new Date(), auth.profile?.name ?? ""),
+  [
+    getGreeting(new Date(), auth.profile?.name ?? ""),
+    practiceDaysText(practiceDays.value),
+  ]
+    .filter((t) => t !== "")
+    .join(" "),
+);
+// El personaje de la conversación de hoy (cambia con el motivo y, con "ambos", con el día)
+const personaje = computed(
+  () =>
+    sceneFor(current.value, auth.profile?.motive ?? null, today).personaje_es,
 );
 
 // Celular: la estación anterior, la actual y la siguiente (en el camino completo)
@@ -34,16 +50,21 @@ const status = ref<"cargando" | "listo" | "error">("cargando");
 const pending = ref(0);
 const newCount = ref(0);
 const unitDone = ref(false);
+const sessionStatus = ref<TodayStatus>("ninguna");
 
 async function loadSession(): Promise<void> {
   status.value = "cargando";
-  const today = localDate(new Date());
   try {
-    const [queue, learnedEn, learnedToday] = await Promise.all([
-      PhrasesService.GetReviewQueue(today),
-      PhrasesService.GetLearnedEn(current.value.id),
-      PhrasesService.CountLearnedToday(today),
-    ]);
+    const [queue, learnedEn, learnedToday, todayStatus, days] =
+      await Promise.all([
+        PhrasesService.GetReviewQueue(today),
+        PhrasesService.GetLearnedEn(current.value.id),
+        PhrasesService.CountLearnedToday(today),
+        SessionService.GetTodayStatus(today),
+        SessionService.CountPracticeDays(weekStart(today), today),
+      ]);
+    sessionStatus.value = todayStatus;
+    practiceDays.value = days;
     pending.value = queue.phrases.length;
     newCount.value = pickNewPhrases(
       current.value,
@@ -85,6 +106,8 @@ const lineLabel = computed(() =>
           :new-count="newCount"
           :unit-done="unitDone"
           :status="status"
+          :session-status="sessionStatus"
+          :personaje="personaje"
           @retry="loadSession"
         />
       </LineaVertical>
@@ -113,6 +136,8 @@ const lineLabel = computed(() =>
           :new-count="newCount"
           :unit-done="unitDone"
           :status="status"
+          :session-status="sessionStatus"
+          :personaje="personaje"
           @retry="loadSession"
         />
       </div>

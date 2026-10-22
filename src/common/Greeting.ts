@@ -11,3 +11,10 @@ export function getGreeting(now: Date, name: string): string {
   const firstName = word.charAt(0).toUpperCase() + word.slice(1);
   return firstName ? `${greeting}, ${firstName}.` : `${greeting}.`;
 }
+
+// "Esta semana practicaste 4 días." Contar días por semana no castiga faltar uno (spec 3);
+// con 0 no se dice nada.
+export function practiceDaysText(days: number): string {
+  if (days <= 0) return "";
+  return `Esta semana practicaste ${days} ${days === 1 ? "día" : "días"}.`;
+}

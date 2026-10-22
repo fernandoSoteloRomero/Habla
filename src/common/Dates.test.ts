@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, localDate, localDayStart } from "./Dates";
+import { addDays, localDate, localDayStart, weekStart } from "./Dates";
 
 describe("fechas locales", () => {
   it("localDate usa la fecha del teléfono, no la de UTC", () => {
@@ -12,6 +12,12 @@ describe("fechas locales", () => {
     expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
     expect(addDays("2026-02-27", 3)).toBe("2026-03-02");
     expect(addDays("2026-10-22", 25)).toBe("2026-11-16");
+  });
+  it("weekStart da el lunes de esa semana", () => {
+    expect(weekStart("2026-10-22")).toBe("2026-10-19"); // jueves
+    expect(weekStart("2026-10-19")).toBe("2026-10-19"); // lunes
+    expect(weekStart("2026-11-01")).toBe("2026-10-26"); // domingo
+    expect(weekStart("2027-01-01")).toBe("2026-12-28"); // cruza el año
   });
   it("localDayStart es la medianoche local de ese día", () => {
     const start = new Date(localDayStart("2026-10-22"));

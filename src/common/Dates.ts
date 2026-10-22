@@ -14,6 +14,13 @@ export function localDayStart(date: string): string {
   return new Date(y, m - 1, d).toISOString();
 }
 
+// El lunes de la semana de "AAAA-MM-DD" (para "Esta semana practicaste 4 días")
+export function weekStart(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 = domingo
+  return addDays(date, weekday === 0 ? -6 : 1 - weekday);
+}
+
 // Suma días a una fecha "AAAA-MM-DD". Usa UTC solo para contar días (sin horario de verano).
 export function addDays(date: string, days: number): string {
   const [y, m, d] = date.split("-").map(Number);
