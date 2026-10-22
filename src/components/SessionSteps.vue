@@ -1,12 +1,13 @@
 <script setup lang="ts">
-// Mini línea de la sesión (diseño: .l-mini). En la fase 3 son tres pasos; "Conversar" llega en la fase 4.
-type Step = "repasar" | "aprender" | "resumen";
+// Mini línea de la sesión (diseño: .l-mini): Repasar, Aprender, Conversar y Resumen.
+type Step = "repasar" | "aprender" | "conversar" | "resumen";
 
 const props = defineProps<{ current: Step }>();
 
 const steps: { id: Step; label: string }[] = [
   { id: "repasar", label: "Repasar" },
   { id: "aprender", label: "Aprender" },
+  { id: "conversar", label: "Conversar" },
   { id: "resumen", label: "Resumen" },
 ];
 const currentIndex = (): number =>

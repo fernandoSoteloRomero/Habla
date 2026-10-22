@@ -7,7 +7,16 @@ import { useSpeechOutput } from "@/composables/useSpeechOutput";
 import { getUnit } from "@/curriculum/units";
 import router from "@/router";
 import PhrasesService from "@/Services/Phrases/PhrasesService";
+import SessionService, {
+  SessionError,
+} from "@/Services/Session/SessionService";
+import type * as SessionModule from "@/Services/Session/SessionService";
 import type { Phrase } from "@/Services/interfaces/Phrases/PhraseInterface";
+import type {
+  PersonajeTurn,
+  SessionView,
+  Turn,
+} from "@/Services/interfaces/Session/SessionInterface";
 import { useAuthStore } from "@/stores/auth";
 import SesionPage from "./SesionPage.vue";
 
@@ -22,10 +31,20 @@ vi.mock("@/Services/Phrases/PhrasesService", () => ({
     AddLessonPhrases: vi.fn(),
   },
 }));
+vi.mock("@/Services/Session/SessionService", async () => {
+  const actual = await vi.importActual<typeof SessionModule>(
+    "@/Services/Session/SessionService",
+  );
+  return {
+    ...actual,
+    default: { Start: vi.fn(), Turn: vi.fn(), Close: vi.fn() },
+  };
+});
 
 enableAutoUnmount(afterEach);
 
 const unit = getUnit("a2-junta");
+const allLearned = unit.frases_clave.map((f) => f.en);
 const review = (n: number): Phrase[] =>
   Array.from({ length: n }, (_, i) => ({
     id: i + 1,
@@ -39,6 +58,42 @@ const review = (n: number): Phrase[] =>
     lapses: 0,
     reviewed_on: null,
   }));
+
+const opener: PersonajeTurn = {
+  quien: "personaje",
+  en: "Welcome to the team. Can you introduce yourself?",
+  es: "Bienvenido al equipo. ¿Puedes presentarte?",
+  sugerencias: [],
+  correccion: null,
+  terminada: false,
+};
+
+function aiSession(over: Partial<SessionView> = {}): SessionView {
+  return {
+    id: "s1",
+    date: "2026-10-22",
+    unitId: unit.id,
+    status: "en_curso",
+    content: {
+      frases: [
+        {
+          en: unit.frases_clave[0].en,
+          nota: "",
+          ejemplo_en: "Example from the AI.",
+          ejemplo_es: "Ejemplo de la IA.",
+        },
+      ],
+      escena: unit.escenas.trabajo,
+      apertura_en: opener.en,
+      apertura_es: opener.es,
+      sugerencias: [],
+    },
+    transcript: [opener],
+    summary: null,
+    minutes: null,
+    ...over,
+  };
+}
 
 async function setup(
   toReview: number,
@@ -83,66 +138,172 @@ const click = async (w: VueWrapper, text: string): Promise<void> => {
 };
 const stage = (w: VueWrapper): string | undefined =>
   w.get("[data-paso]").attributes("data-paso");
+async function say(w: VueWrapper, text: string): Promise<void> {
+  await w.get("textarea").setValue(text);
+  await w.get('button[aria-label="Enviar"]').trigger("click");
+  await flushPromises();
+}
 
 describe("SesionPage", () => {
   beforeEach(() => vi.resetAllMocks());
 
-  it("repasa, aprende y termina con el resumen", async () => {
-    const w = await setup(3, []);
+  it("repasa, aprende con la IA, conversa y termina con el resumen", async () => {
+    vi.mocked(SessionService.Start).mockResolvedValue(aiSession());
+    vi.mocked(SessionService.Turn).mockResolvedValue({
+      persona: { quien: "persona", texto: "I am Ana, the new developer." },
+      personaje: { ...opener, en: "Nice to meet you.", terminada: true },
+    });
+    vi.mocked(SessionService.Close).mockResolvedValue({
+      summary: {
+        bien: ["Te presentaste con tu puesto"],
+        correcciones: [
+          {
+            original: "I am agree",
+            mejor: "I agree",
+            mejor_es: "Estoy de acuerdo",
+            nota: "",
+            guardada: true,
+          },
+        ],
+      },
+      minutes: 18,
+    });
+    const w = await setup(2, []);
+    // La IA se prepara al abrir, sin esperar a que termine el repaso
+    expect(SessionService.Start).toHaveBeenCalledWith(
+      expect.any(String),
+      unit.frases_clave.slice(0, 4).map((f) => f.en),
+    );
     expect(stage(w)).toBe("repasar");
-    expect(w.text()).toContain("Frase 1 de 3");
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       await click(w, "Ver significado");
       await click(w, "Fácil");
     }
     expect(stage(w)).toBe("aprender");
-    expect(w.text()).toContain("Frase nueva 1 de 4");
+    expect(w.text()).toContain("Otro ejemplo");
+    expect(w.text()).toContain("Example from the AI.");
     for (let i = 0; i < 3; i++) await click(w, "Siguiente frase");
     await click(w, "Terminar");
+
+    expect(stage(w)).toBe("conversar");
+    expect(w.text()).toContain(`Con ${unit.escenas.trabajo.personaje_es}`);
+    await say(w, "I am Ana, the new developer.");
+    await click(w, "Ver tu resumen");
+    expect(SessionService.Close).toHaveBeenCalledWith("s1");
+
     expect(stage(w)).toBe("resumen");
     expect(w.text()).toContain("Sesión terminada");
-    expect(w.text()).toContain("Repasaste 3 frases");
+    expect(w.text()).toContain("18 minutos en Presentarte en una junta.");
+    expect(w.text()).toContain("Lo que hiciste bien");
+    expect(w.text()).toContain("Te presentaste con tu puesto");
+    expect(w.text()).toContain("Para la próxima");
+    expect(w.text()).toContain("I agree");
+    expect(w.text()).toContain("Repasaste 2 frases");
     expect(w.text()).toContain("Aprendiste 4 frases nuevas");
-    expect(PhrasesService.AddLessonPhrases).toHaveBeenCalledWith(
-      "u1",
-      "a2-junta",
-      unit.frases_clave.slice(0, 4),
-      expect.any(String),
-    );
+    expect(w.text()).toContain("Agregamos 5 frases a tu repaso.");
     await click(w, "Terminar");
     await vi.waitFor(() => expect(router.currentRoute.value.name).toBe("hoy"));
   });
-  it("sin frases para repasar empieza en Aprender", async () => {
-    const w = await setup(0, []);
-    expect(stage(w)).toBe("aprender");
+  it("sin repasos ni frases nuevas va directo a Conversar y espera a la IA", async () => {
+    vi.mocked(SessionService.Start).mockReturnValue(new Promise(() => {}));
+    const w = await setup(0, allLearned);
+    expect(stage(w)).toBe("conversar");
+    expect(w.text()).toContain("Preparando la conversación…");
   });
-  it("si ya aprendió todo, termina después del repaso", async () => {
-    const w = await setup(
-      2,
-      unit.frases_clave.map((f) => f.en),
+  it("sin presupuesto de IA se repasa y aprende igual, y Conversar se puede saltar", async () => {
+    vi.mocked(SessionService.Start).mockRejectedValue(
+      new SessionError("presupuesto"),
     );
-    for (let i = 0; i < 2; i++) {
-      await click(w, "Ver significado");
-      await click(w, "Me costó");
-    }
+    const w = await setup(1, []);
+    await click(w, "Ver significado");
+    await click(w, "Fácil");
+    expect(w.text()).not.toContain("Otro ejemplo");
+    for (let i = 0; i < 3; i++) await click(w, "Siguiente frase");
+    await click(w, "Terminar");
+    expect(stage(w)).toBe("conversar");
+    expect(w.text()).toContain("Se terminó el presupuesto de IA de");
+    await click(w, "Saltar la conversación");
     expect(stage(w)).toBe("resumen");
-    expect(w.text()).toContain("Repasaste 2 frases");
-    expect(w.text()).not.toContain("Aprendiste");
+    expect(w.text()).not.toContain("Lo que hiciste bien");
+    expect(w.text()).toContain("Aprendiste 4 frases nuevas");
+    expect(SessionService.Close).not.toHaveBeenCalled();
+  });
+  it("si la IA falló al preparar, 'Intentar de nuevo' la vuelve a llamar", async () => {
+    vi.mocked(SessionService.Start)
+      .mockRejectedValueOnce(new SessionError("ia"))
+      .mockResolvedValueOnce(aiSession());
+    const w = await setup(0, allLearned);
+    expect(w.text()).toContain("La IA no respondió");
+    await click(w, "Intentar de nuevo");
+    expect(SessionService.Start).toHaveBeenCalledTimes(2);
+    expect(w.text()).toContain(opener.en);
+  });
+  it("si ya terminó la sesión de hoy, muestra su resumen", async () => {
+    vi.mocked(SessionService.Start).mockResolvedValue(
+      aiSession({
+        status: "terminada",
+        summary: { bien: ["Pediste tu comida"], correcciones: [] },
+        minutes: 20,
+      }),
+    );
+    const w = await setup(0, allLearned);
+    expect(stage(w)).toBe("resumen");
+    expect(w.text()).toContain("Pediste tu comida");
+    expect(w.text()).not.toContain("Hoy no había frases");
+  });
+  it("si la dejó a medias, continúa la conversación donde iba", async () => {
+    const transcript: Turn[] = [
+      opener,
+      { quien: "persona", texto: "Hola desde antes" },
+      { ...opener, en: "Tell me more." },
+    ];
+    vi.mocked(SessionService.Start).mockResolvedValue(
+      aiSession({ transcript }),
+    );
+    const w = await setup(0, allLearned);
+    expect(stage(w)).toBe("conversar");
+    expect(w.text()).toContain("Hola desde antes");
+    expect(w.text()).toContain("Tell me more.");
+  });
+  it("si no se pudo cerrar por falta de conexión, avisa y deja intentar de nuevo", async () => {
+    vi.mocked(SessionService.Start).mockResolvedValue(
+      aiSession({
+        transcript: [
+          opener,
+          { quien: "persona", texto: "Hi" },
+          { ...opener, en: "Hello." },
+        ],
+      }),
+    );
+    vi.mocked(SessionService.Close)
+      .mockRejectedValueOnce(new SessionError("sin-conexion"))
+      .mockResolvedValueOnce({
+        summary: { bien: [], correcciones: [] },
+        minutes: 5,
+      });
+    const w = await setup(0, allLearned);
+    await click(w, "Terminar conversación");
+    expect(w.text()).toContain("Sin conexión a internet");
+    await click(w, "Intentar de nuevo");
+    expect(stage(w)).toBe("resumen");
+    expect(w.text()).toContain("5 minutos en");
   });
   it("el máximo de frases nuevas es por día: con 2 aprendidas hoy solo enseña 2", async () => {
+    vi.mocked(SessionService.Start).mockResolvedValue(aiSession());
     const w = await setup(0, [], 2);
     expect(w.text()).toContain("Frase nueva 1 de 2");
   });
-  it("con 4 aprendidas hoy ya no enseña más: solo repasa", async () => {
+  it("con 4 aprendidas hoy ya no enseña más: repasa y pasa a Conversar", async () => {
+    vi.mocked(SessionService.Start).mockResolvedValue(aiSession());
     const w = await setup(
       1,
       unit.frases_clave.slice(0, 4).map((f) => f.en),
       4,
     );
+    expect(SessionService.Start).toHaveBeenCalledWith(expect.any(String), []);
     await click(w, "Ver significado");
     await click(w, "Fácil");
-    expect(stage(w)).toBe("resumen");
-    expect(w.text()).not.toContain("Aprendiste");
+    expect(stage(w)).toBe("conversar");
     expect(PhrasesService.AddLessonPhrases).not.toHaveBeenCalled();
   });
   it("si no se pudo cargar, avisa y deja reintentar", async () => {
@@ -174,5 +335,6 @@ describe("SesionPage", () => {
     await flushPromises();
     expect(w.text()).toContain("Sin conexión a internet");
     expect(w.text()).toContain("Reintentar");
+    expect(SessionService.Start).not.toHaveBeenCalled();
   });
 });
