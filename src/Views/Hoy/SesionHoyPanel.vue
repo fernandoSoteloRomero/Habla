@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
+import { units } from "@/curriculum/units";
+import { useAuthStore } from "@/stores/auth";
 
 // Panel "Sesión de hoy" (diseño: .l-panel y .l-steps). Los números los carga HoyPage una sola vez
 // (el panel se pinta dos veces: celular y computadora).
@@ -14,6 +16,7 @@ const props = defineProps<{
 const emit = defineEmits<{ retry: [] }>();
 
 const router = useRouter();
+const auth = useAuthStore();
 
 // ~36 s por repaso y ~90 s por frase nueva
 const minutes = computed(() =>
@@ -39,6 +42,32 @@ const steps = computed(() => [
   { text: "Conversar (llega pronto)", muted: true },
   { text: "Ver tu resumen", muted: false },
 ]);
+
+// TEMPORAL (hasta la fase 5): con las frases de la meta aprendidas se pasa a la siguiente.
+// En la última meta ya no hay a dónde seguir.
+const isLastUnit = computed(
+  () => auth.profile?.current_unit_id === units[units.length - 1].id,
+);
+const advancing = ref(false);
+const advanceError = ref("");
+
+async function advance(): Promise<void> {
+  if (advancing.value) return;
+  advancing.value = true;
+  advanceError.value = "";
+  try {
+    // Si avanza, Hoy ve la nueva meta y vuelve a cargar los números
+    if (!(await auth.advanceUnit())) {
+      advanceError.value = "Todavía faltan frases de esta meta en tu repaso.";
+    }
+  } catch (error) {
+    console.error(error);
+    advanceError.value =
+      "No pudimos pasarte a la próxima estación. Revisa tu conexión y vuelve a intentar.";
+  } finally {
+    advancing.value = false;
+  }
+}
 </script>
 
 <template>
@@ -88,7 +117,26 @@ const steps = computed(() => [
       <Button v-if="canStart" @click="router.push({ name: 'sesion' })">
         Empezar sesión
       </Button>
-      <slot v-if="unitDone" name="avance" />
+      <template v-if="unitDone">
+        <p v-if="isLastUnit" class="text-sm font-bold">
+          Llegaste al final de la ruta.
+        </p>
+        <template v-else>
+          <p v-if="advanceError" class="mt-2 mb-2 text-sm leading-snug">
+            {{ advanceError }}
+          </p>
+          <!-- Si hay sesión, la acción rosa es "Empezar sesión" y esta va secundaria -->
+          <Button
+            data-testid="avance"
+            :variant="canStart ? 'line' : 'go'"
+            :class="{ 'mt-2': canStart }"
+            :disabled="advancing"
+            @click="advance"
+          >
+            Seguir a la próxima estación
+          </Button>
+        </template>
+      </template>
     </template>
   </div>
 </template>

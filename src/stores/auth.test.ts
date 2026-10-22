@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { supabase } from "@/lib/supabase";
 import ProfileService from "@/Services/Profile/ProfileService";
+import type { Profile } from "@/Services/interfaces/Profile/ProfileInterface";
 import { useAuthStore } from "./auth";
 
 vi.mock("@/lib/supabase", () => ({
@@ -16,7 +17,7 @@ vi.mock("@/lib/supabase", () => ({
   },
 }));
 vi.mock("@/Services/Profile/ProfileService", () => ({
-  default: { GetProfile: vi.fn(), SaveMotive: vi.fn() },
+  default: { GetProfile: vi.fn(), SaveMotive: vi.fn(), AdvanceUnit: vi.fn() },
 }));
 
 const session = { user: { id: "u1" } };
@@ -181,6 +182,33 @@ describe("auth store", () => {
     expect(auth.session).toBeNull();
     expect(auth.profile).toBeNull();
     expect(onSignedOut).toHaveBeenCalled();
+  });
+  it("al avanzar desde la última meta del Nivel 0 cruza a la línea A1", async () => {
+    vi.mocked(ProfileService.AdvanceUnit).mockResolvedValue(true);
+    const auth = useAuthStore();
+    auth.profile = { ...profile, current_unit_id: "l0-nombre" } as Profile;
+    expect(await auth.advanceUnit()).toBe(true);
+    expect(ProfileService.AdvanceUnit).toHaveBeenCalledWith(
+      "a1-quien-eres",
+      "A1",
+      6,
+    );
+    expect(auth.profile?.current_unit_id).toBe("a1-quien-eres");
+    expect(auth.profile?.level).toBe("A1");
+  });
+  it("si la base no deja avanzar, el perfil no cambia", async () => {
+    vi.mocked(ProfileService.AdvanceUnit).mockResolvedValue(false);
+    const auth = useAuthStore();
+    auth.profile = { ...profile, current_unit_id: "l0-nombre" } as Profile;
+    expect(await auth.advanceUnit()).toBe(false);
+    expect(auth.profile?.current_unit_id).toBe("l0-nombre");
+    expect(auth.profile?.level).toBe("L0");
+  });
+  it("en la última meta no hay a dónde avanzar", async () => {
+    const auth = useAuthStore();
+    auth.profile = { ...profile, current_unit_id: "b1-viaje" } as Profile;
+    expect(await auth.advanceUnit()).toBe(false);
+    expect(ProfileService.AdvanceUnit).not.toHaveBeenCalled();
   });
   it("cerrar sesión solo cierra este dispositivo", async () => {
     vi.mocked(supabase.auth.signOut).mockResolvedValue({

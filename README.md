@@ -76,6 +76,16 @@ npm run dev                         # http://localhost:5173
   npm run db:sql -- --query "update public.profiles set placed_at = null where user_id = (select id from auth.users where email = 'correo@gmail.com')"
   ```
 
+## Aprender y Repaso (fase 3)
+
+- **Sin IA:** las frases nuevas salen de `frases_clave` en `src/curriculum/units.ts` (6 por meta). Cada sesión enseña hasta 4 y al terminar entran al repaso para mañana.
+- **Repaso:** máximo 15 frases al día, con "No me acordé / Me costó / Fácil" (spec 5.4). Las fechas son las locales del teléfono.
+- **Avance temporal de estación:** cuando las 6 frases de la meta ya están en tu repaso, Hoy muestra "Seguir a la próxima estación" (función `advance_unit`). En la fase 5 se cambia por la conversación final.
+- **Ver el repaso de alguien:**
+  ```bash
+  npm run db:sql -- --query "select en, due_on, interval_days, ease from public.phrases order by id"
+  ```
+
 ## Invitar a alguien
 
 Son dos pasos, porque la app de Google está en modo "Prueba":

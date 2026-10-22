@@ -1,6 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { defineStore } from "pinia";
+import { units } from "@/curriculum/units";
 import { supabase } from "@/lib/supabase";
 import PlacementService from "@/Services/Placement/PlacementService";
 import ProfileService from "@/Services/Profile/ProfileService";
@@ -135,6 +136,27 @@ export const useAuthStore = defineStore("auth", {
         this.profile.placed_at = new Date().toISOString();
       }
       this.lastPlacement = result;
+    },
+
+    // TEMPORAL (hasta la fase 5, que lo cambia por la conversación final): pasa a la siguiente
+    // meta del temario; al cruzar de línea también cambia el nivel. La base revisa que las
+    // frases de la meta ya estén en el repaso. false si no hay siguiente o la base no lo dejó.
+    async advanceUnit(): Promise<boolean> {
+      const index = units.findIndex(
+        (u) => u.id === this.profile?.current_unit_id,
+      );
+      const next = units[index + 1];
+      if (index < 0 || !next) return false;
+      const moved = await ProfileService.AdvanceUnit(
+        next.id,
+        next.nivel,
+        units[index].frases_clave.length,
+      );
+      if (moved && this.profile) {
+        this.profile.level = next.nivel;
+        this.profile.current_unit_id = next.id;
+      }
+      return moved;
     },
 
     // Vuelve a leer el perfil (por ejemplo, si la evaluación ya se hizo en otra pestaña)
