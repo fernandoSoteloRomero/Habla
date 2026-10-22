@@ -39,6 +39,7 @@ const avatarClass = computed(() => {
 
 const tabs = [
   { name: "hoy", label: "Hoy", icon: "#i-tab-today" },
+  { name: "repaso", label: "Repaso", icon: "#i-tab-review" },
   { name: "mi-linea", label: "Mi línea", icon: "#i-tab-map" },
 ];
 </script>
@@ -53,7 +54,9 @@ const tabs = [
           class="ml-[3px] inline-block size-2.5 rounded-full bg-rosa align-[2px]"
         />
       </div>
-      <nav class="ml-auto hidden gap-[22px] text-sm font-bold text-ink-2 lg:flex">
+      <nav
+        class="ml-auto hidden gap-[22px] text-sm font-bold text-ink-2 lg:flex"
+      >
         <RouterLink
           v-for="tab in tabs"
           :key="tab.name"

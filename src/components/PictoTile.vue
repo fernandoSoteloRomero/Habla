@@ -38,7 +38,8 @@ const tileClass = computed(
 
 // El naranja de B1 solo lleva negro encima (blanco sobre naranja no da el contraste AA)
 const iconClass = computed(
-  () => `${iconSizes[props.size]} ${props.bg === "l3" ? "fill-ink" : "fill-white"}`,
+  () =>
+    `${iconSizes[props.size]} ${props.bg === "l3" ? "fill-ink" : "fill-white"}`,
 );
 </script>
 

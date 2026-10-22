@@ -19,6 +19,16 @@ const router = createRouter({
           name: "mi-linea",
           component: () => import("@/Views/MiLinea/MiLineaPage.vue"),
         },
+        {
+          path: "repaso",
+          name: "repaso",
+          component: () => import("@/Views/Repaso/RepasoPage.vue"),
+        },
+        {
+          path: "repaso/tarjetas",
+          name: "repaso-tarjetas",
+          component: () => import("@/Views/Repaso/TarjetasPage.vue"),
+        },
       ],
     },
     {

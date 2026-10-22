@@ -36,4 +36,28 @@ describe("MainLayout", () => {
     expect(tab("Mi línea")).toContain("is-active");
     expect(tab("Hoy")).not.toContain("is-active");
   });
+  it("en Repaso solo se marca la pestaña Repaso", async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const auth = useAuthStore();
+    auth.session = { user: { id: "u1" } } as Session;
+    auth.profile = {
+      user_id: "u1",
+      name: "Ana",
+      motive: "viajes",
+      level: "L0",
+      current_unit_id: "l0-saludar",
+      is_admin: false,
+      placed_at: "2026-10-21T15:00:00Z",
+    };
+    await router.push("/repaso");
+    const w = mount(MainLayout, { global: { plugins: [pinia, router] } });
+    // Solo la barra de afuera: en la prueba, el RouterView interno vuelve a pintar el layout
+    const active = w
+      .find("nav.sticky")
+      .findAll("a")
+      .filter((a) => a.classes().includes("is-active"))
+      .map((a) => a.text());
+    expect(active).toEqual(["Repaso"]);
+  });
 });
