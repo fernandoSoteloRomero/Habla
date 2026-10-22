@@ -31,6 +31,36 @@ begin
   end;
 end $$;
 
+-- Reserva de llamadas a la IA (límite diario sin carreras) y guardado del resultado en un paso
+do $$
+declare
+  r1 bigint; r2 bigint; r3 bigint;
+begin
+  -- Beto no tiene llamadas: con máximo 2, las dos primeras reservan y la tercera no
+  r1 := public.reserve_ai_call('00000000-0000-4000-8000-00000000000b', 'placement', 'claude-haiku-5-5', 2);
+  r2 := public.reserve_ai_call('00000000-0000-4000-8000-00000000000b', 'placement', 'claude-haiku-5-5', 2);
+  r3 := public.reserve_ai_call('00000000-0000-4000-8000-00000000000b', 'placement', 'claude-haiku-5-5', 2);
+  assert r1 is not null and r2 is not null and r1 <> r2, 'FALLO: no reservó las dos primeras llamadas';
+  assert r3 is null, 'FALLO: reservó más llamadas que el máximo';
+  assert (select count(*) from public.usage_log where user_id = '00000000-0000-4000-8000-00000000000b') = 2,
+    'FALLO: la reserva no dejó su fila en usage_log';
+  assert (select cost_usd from public.usage_log where id = r1) = 0, 'FALLO: la reserva no empieza en cero';
+
+  -- Guardar el resultado: la primera vez guarda todo junto; la segunda no cambia nada
+  assert public.save_placement('00000000-0000-4000-8000-00000000000b', 'A1', 'a1-quien-eres', '{"x":1}'::jsonb) = true,
+    'FALLO: no guardó la primera evaluación';
+  assert (select level || '/' || current_unit_id from public.profiles where user_id = '00000000-0000-4000-8000-00000000000b') = 'A1/a1-quien-eres',
+    'FALLO: no actualizó el perfil';
+  assert (select placed_at from public.profiles where user_id = '00000000-0000-4000-8000-00000000000b') is not null,
+    'FALLO: no marcó placed_at';
+  assert (select count(*) from public.placements where user_id = '00000000-0000-4000-8000-00000000000b' and result_level = 'A1') = 1,
+    'FALLO: no guardó la evaluación';
+  assert public.save_placement('00000000-0000-4000-8000-00000000000b', 'B1', 'b1-opinion', '{}'::jsonb) = false,
+    'FALLO: dejó evaluar dos veces';
+  assert (select level from public.profiles where user_id = '00000000-0000-4000-8000-00000000000b') = 'A1',
+    'FALLO: la segunda evaluación cambió el nivel';
+end $$;
+
 -- Ana (authenticated): ve sus evaluaciones; no escribe nada ni ve el gasto
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-8000-00000000000a","role":"authenticated"}';
@@ -47,6 +77,10 @@ begin
     raise exception 'FALLO: Ana pudo escribir en el gasto'; exception when insufficient_privilege then null; end;
   begin update public.profiles set placed_at = now() where user_id = '00000000-0000-4000-8000-00000000000a';
     raise exception 'FALLO: Ana pudo marcarse como evaluada'; exception when insufficient_privilege then null; end;
+  begin perform public.reserve_ai_call('00000000-0000-4000-8000-00000000000a', 'placement', 'x', 99);
+    raise exception 'FALLO: Ana puede reservar llamadas'; exception when insufficient_privilege then null; end;
+  begin perform public.save_placement('00000000-0000-4000-8000-00000000000a', 'B1', 'b1-opinion', '{}'::jsonb);
+    raise exception 'FALLO: Ana puede guardarse un nivel'; exception when insufficient_privilege then null; end;
 end $$;
 
 -- Sin sesión (anon): nada

@@ -9,15 +9,19 @@ import PlacementService, {
   PlacementError,
 } from "@/Services/Placement/PlacementService";
 import type * as PlacementModule from "@/Services/Placement/PlacementService";
+import ProfileService from "@/Services/Profile/ProfileService";
 import { useAuthStore } from "@/stores/auth";
 import EvaluacionPage from "./EvaluacionPage.vue";
 
-vi.mock("@/lib/supabase", () => ({ supabase: { auth: {} } }));
+vi.mock("@/lib/supabase", () => ({ supabase: { auth: { signOut: vi.fn() } } }));
+vi.mock("@/Services/Profile/ProfileService", () => ({
+  default: { GetProfile: vi.fn(), SaveMotive: vi.fn() },
+}));
 vi.mock("@/composables/useSpeechOutput", () => ({ useSpeechOutput: vi.fn() }));
-// Se conserva PlacementError de verdad; solo se reemplaza Run
+// Se conserva PlacementError de verdad; solo se reemplazan Run y Fallback
 vi.mock("@/Services/Placement/PlacementService", async (importOriginal) => {
   const actual = await importOriginal<typeof PlacementModule>();
-  return { ...actual, default: { Run: vi.fn() } };
+  return { ...actual, default: { Run: vi.fn(), Fallback: vi.fn() } };
 });
 
 enableAutoUnmount(afterEach);
@@ -98,16 +102,19 @@ describe("EvaluacionPage", () => {
     const w = await setup();
     await answerTwoNoSe(w);
     expect(w.text()).toContain("Listo, ya tenemos tus respuestas");
-    const send = button(w, "Ver mi resultado");
-    await send.trigger("click");
+    // Dos clics seguidos, antes de que el botón alcance a apagarse en pantalla:
+    // así se prueba la protección del código y no solo el botón deshabilitado
+    const send = button(w, "Ver mi resultado").element as HTMLButtonElement;
+    send.click();
+    send.click();
+    await flushPromises();
+    expect(PlacementService.Run).toHaveBeenCalledTimes(1);
     // Mientras la IA responde: el botón avisa y queda apagado
     expect(w.text()).toContain("Calculando tu nivel…");
     expect(w.text()).toContain("Tarda unos segundos.");
     expect(
       button(w, "Calculando tu nivel…").attributes("disabled"),
     ).toBeDefined();
-    await send.trigger("click");
-    expect(PlacementService.Run).toHaveBeenCalledTimes(1);
     expect(vi.mocked(PlacementService.Run).mock.calls[0][0]).toHaveLength(2);
   });
   it("si sale bien, actualiza el perfil y va al resultado", async () => {
@@ -163,6 +170,11 @@ describe("EvaluacionPage", () => {
       "Sin conexión a internet",
       "Tus respuestas siguen aquí. Revisa tu conexión y vuelve a intentar.",
     ],
+    [
+      "servidor",
+      "No se guardó tu resultado",
+      "Tus respuestas siguen aquí. Intenta de nuevo en un momento.",
+    ],
   ] as const)("con el error %s muestra su aviso", async (code, title, body) => {
     vi.mocked(PlacementService.Run).mockRejectedValue(new PlacementError(code));
     const w = await setup();
@@ -171,5 +183,97 @@ describe("EvaluacionPage", () => {
     await flushPromises();
     expect(w.text()).toContain(title);
     expect(w.text()).toContain(body);
+  });
+  it("si las respuestas llegaron mal, deja empezar de nuevo", async () => {
+    vi.mocked(PlacementService.Run).mockRejectedValue(
+      new PlacementError("datos"),
+    );
+    const w = await setup();
+    await answerTwoNoSe(w);
+    await button(w, "Ver mi resultado").trigger("click");
+    await flushPromises();
+    expect(w.text()).toContain("Algo salió mal con tus respuestas");
+    expect(w.text()).toContain("Vuelve a empezar la evaluación.");
+    expect(w.text()).not.toContain("Empezar en Nivel 0 por ahora");
+    await button(w, "Empezar de nuevo").trigger("click");
+    expect(w.text()).toContain("Pregunta 1, de unas 12");
+  });
+  it("si la sesión se cerró, lleva a entrar otra vez", async () => {
+    vi.mocked(PlacementService.Run).mockRejectedValue(
+      new PlacementError("sesion"),
+    );
+    const w = await setup();
+    await answerTwoNoSe(w);
+    await button(w, "Ver mi resultado").trigger("click");
+    await flushPromises();
+    expect(w.text()).toContain("Tu sesión se cerró");
+    expect(w.text()).toContain("Vuelve a entrar con Google para seguir.");
+    await button(w, "Entrar otra vez").trigger("click");
+    await vi.waitFor(() =>
+      expect(router.currentRoute.value.name).toBe("bienvenida"),
+    );
+  });
+  it.each(["presupuesto", "limite", "ia", "servidor"] as const)(
+    "con %s ofrece empezar en Nivel 0 sin IA",
+    async (code) => {
+      vi.mocked(PlacementService.Run).mockRejectedValue(
+        new PlacementError(code),
+      );
+      vi.mocked(PlacementService.Fallback).mockResolvedValue({
+        level: "L0",
+        unitId: "l0-saludar",
+        resumen: "Empiezas desde el principio.",
+      });
+      const w = await setup();
+      await answerTwoNoSe(w);
+      await button(w, "Ver mi resultado").trigger("click");
+      await flushPromises();
+      await button(w, "Empezar en Nivel 0 por ahora").trigger("click");
+      await flushPromises();
+      expect(PlacementService.Fallback).toHaveBeenCalledTimes(1);
+      expect(useAuthStore().profile?.placed_at).not.toBeNull();
+      await vi.waitFor(() =>
+        expect(router.currentRoute.value.name).toBe("resultado"),
+      );
+    },
+  );
+  it("sin conexión no ofrece Nivel 0 (tampoco llegaría)", async () => {
+    vi.mocked(PlacementService.Run).mockRejectedValue(
+      new PlacementError("sin-conexion"),
+    );
+    const w = await setup();
+    await answerTwoNoSe(w);
+    await button(w, "Ver mi resultado").trigger("click");
+    await flushPromises();
+    expect(w.text()).not.toContain("Empezar en Nivel 0 por ahora");
+  });
+  it("si ya estaba evaluado (otra pestaña), recarga el perfil y va a Hoy", async () => {
+    vi.mocked(PlacementService.Run).mockRejectedValue(
+      new PlacementError("ya-evaluado"),
+    );
+    vi.mocked(ProfileService.GetProfile).mockResolvedValue({
+      user_id: "u1",
+      name: "Ana",
+      motive: "viajes",
+      level: "A1",
+      current_unit_id: "a1-quien-eres",
+      is_admin: false,
+      placed_at: "2026-10-21T15:00:00Z",
+    });
+    const w = await setup();
+    await answerTwoNoSe(w);
+    await button(w, "Ver mi resultado").trigger("click");
+    await flushPromises();
+    expect(useAuthStore().profile?.level).toBe("A1");
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe("hoy"));
+  });
+  it("si se recarga a media evaluación, vuelve a empezar", async () => {
+    const first = await setup();
+    await button(first, "No sé").trigger("click");
+    expect(first.text()).toContain("Pregunta 2, de unas 12");
+    first.unmount();
+    const again = await setup();
+    expect(again.text()).toContain("Pregunta 1, de unas 12");
+    expect(useAuthStore().profile?.placed_at).toBeNull();
   });
 });

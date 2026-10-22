@@ -25,5 +25,7 @@ export interface PlacementResult {
   resumen: string;
 }
 
-// Lo que regresa la función cuando no ({ error: código })
-export type AiErrorCode = "datos" | "limite" | "presupuesto" | "ia";
+// Lo que regresa la función cuando no ({ error: código }):
+// datos 400, ya-evaluado 409, limite 429, presupuesto 402, ia 502, servidor 500
+export type AiErrorCode =
+  "datos" | "ya-evaluado" | "limite" | "presupuesto" | "ia" | "servidor";

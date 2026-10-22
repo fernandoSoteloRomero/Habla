@@ -37,3 +37,12 @@ export function classifyAnthropicError(
   }
   return "ia";
 }
+
+// Vale la pena reintentar: fallas de red o timeout (sin status), 408, 409, 429 y 5xx.
+// Nunca el presupuesto agotado (reintentar no lo arregla y solo hace esperar).
+export function isRetryable(error: AnthropicLikeError): boolean {
+  if (classifyAnthropicError(error) === "presupuesto") return false;
+  const status = error.status;
+  if (status === undefined) return true;
+  return status === 408 || status === 409 || status === 429 || status >= 500;
+}

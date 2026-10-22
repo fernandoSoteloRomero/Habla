@@ -68,6 +68,13 @@ npm run dev                         # http://localhost:5173
   - Revisa lo de las últimas llamadas con `npm run db:sql -- --query "select function, cost_usd, created_at from public.usage_log order by created_at desc limit 10"`.
 - **Tope:** en la consola de Anthropic, en Settings → Billing → Spend limits, $5 USD al mes y **sin recarga automática**. Si se alcanza, la app muestra "Se terminó el presupuesto de IA".
 - **Límite por persona:** máximo 5 evaluaciones en 24 horas.
+  - Cada evaluación reserva su lugar en `usage_log` antes de llamar a la IA, con `reserve_ai_call`, que pone un candado por persona. Así, aunque lleguen varias peticiones al mismo tiempo, no se brincan el límite.
+  - Los reintentos (máximo 3 intentos) se suman en esa misma fila.
+- **Si la IA no está disponible** (por presupuesto, límite o falla), la evaluación ofrece "Empezar en Nivel 0 por ahora", que no usa IA.
+- **Repetir la evaluación de alguien:**
+  ```bash
+  npm run db:sql -- --query "update public.profiles set placed_at = null where user_id = (select id from auth.users where email = 'correo@gmail.com')"
+  ```
 
 ## Invitar a alguien
 

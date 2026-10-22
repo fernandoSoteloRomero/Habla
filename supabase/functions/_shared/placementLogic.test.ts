@@ -140,8 +140,9 @@ describe("buildPlacementPrompt", () => {
     ]);
     expect(prompt).toContain("Good morning.");
     expect(prompt).toContain("Buenos días.");
-    expect(prompt).toContain("correcta");
-    expect(prompt).toContain("incorrecta");
+    // Con paréntesis: "incorrecta" también contiene "correcta"
+    expect(prompt).toContain("Buenos días. (correcta)");
+    expect(prompt).toContain("years (incorrecta)");
     expect(prompt).toContain("What is your name?");
     expect(prompt).toContain("No sé");
     expect(prompt).toContain("abierta");

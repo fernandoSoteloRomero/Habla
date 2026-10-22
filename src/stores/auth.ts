@@ -120,13 +120,28 @@ export const useAuthStore = defineStore("auth", {
     // Manda las respuestas a la IA; lanza PlacementError si no se pudo (la pantalla avisa).
     // El nivel, la estación y placed_at ya los guardó la función; aquí solo se reflejan.
     async finishPlacement(answers: PlacementAnswer[]): Promise<void> {
-      const result = await PlacementService.Run(answers);
+      this.applyPlacement(await PlacementService.Run(answers));
+    },
+
+    // "Empezar en Nivel 0 por ahora" (sin IA), cuando la IA no está disponible
+    async finishPlacementFallback(): Promise<void> {
+      this.applyPlacement(await PlacementService.Fallback());
+    },
+
+    applyPlacement(result: PlacementResult): void {
       if (this.profile) {
         this.profile.level = result.level;
         this.profile.current_unit_id = result.unitId;
         this.profile.placed_at = new Date().toISOString();
       }
       this.lastPlacement = result;
+    },
+
+    // Vuelve a leer el perfil (por ejemplo, si la evaluación ya se hizo en otra pestaña)
+    async reloadProfile(): Promise<void> {
+      if (!this.session) return;
+      const profile = await ProfileService.GetProfile(this.session.user.id);
+      if (profile) this.profile = profile;
     },
 
     // Solo cierra la sesión de este dispositivo (la de la compu sigue abierta)

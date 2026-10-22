@@ -424,3 +424,29 @@ Sin emojis, sin signos de admiración y sin mencionar errores ni calificaciones.
     4. Revisa que `npm run db:sql -- --query "select function, input_tokens, output_tokens, cost_usd from public.usage_log order by created_at desc limit 3"` tenga la llamada, con un costo menor a $0.01.
   - Revisa también en la consola de Anthropic que el gasto del día coincida más o menos con la suma de `usage_log`.
 - [ ] **Step 7: Commit**: `feat: evaluación inicial con IA y letrero de resultado`
+
+---
+
+## Correcciones de la revisión independiente (2026-10-22)
+
+- **Límite diario sin carreras:** `reserve_ai_call` cuenta y reserva en un solo paso, con un candado por persona (migración `20261022000000_placement_hardening.sql`). Con 10 peticiones al mismo tiempo y un máximo de 3, se probó que solo entran 3.
+  - Ahora el límite cuenta evaluaciones, no intentos.
+  - Si se acabó el presupuesto y no se gastó nada, la reserva se libera.
+- **Reintentos en nuestro código:** el SDK va con `maxRetries: 0` y `timeout` de 25 s.
+  - Hay máximo 3 intentos, solo ante fallas pasajeras (red, 408, 409, 429, 5xx) o una respuesta inválida, nunca ante presupuesto agotado, una negativa (`refusal`) o un 400.
+  - No empieza otro intento después de 60 s.
+  - Todos los tokens se suman en la fila reservada.
+- **Guardado en un paso:** `save_placement` actualiza el perfil e inserta la evaluación en la misma transacción, y solo si `placed_at` todavía es null.
+  - Si ya estaba evaluado, la función responde 409 `ya-evaluado`, y la pantalla recarga el perfil y lleva a Hoy.
+- **Códigos nuevos:**
+  - `servidor` (500): "No se guardó tu resultado".
+  - `sesion` (401 de `withSupabase`): "Tu sesión se cerró", con el botón "Entrar otra vez".
+  - `datos` ahora muestra "Algo salió mal con tus respuestas", con el botón "Empezar de nuevo".
+- **Nadie se queda atorado:** con `presupuesto`, `limite`, `ia` o `servidor`, la pantalla ofrece "Empezar en Nivel 0 por ahora" (`{ fallback: true }`), que no usa IA.
+- **Pruebas:** el flujo de la función vive en `_shared/placementHandler.ts` y lo prueba Vitest con dependencias falsas (18 casos). También se agregaron:
+  - las pruebas de `PlacementService`;
+  - el doble toque de verdad;
+  - los ejemplos reales del error de presupuesto;
+  - las pruebas SQL de las dos funciones nuevas.
+- **Riesgo aceptado:** el servidor confía en las respuestas que manda el navegador (nivel y si fue correcta). Alguien podría ponerse un nivel más alto, pero solo se engaña a sí mismo. Se deja para después: el servidor calificaría con el banco movido a `_shared`.
+

@@ -46,25 +46,71 @@ function dontKnow(): void {
   selected.value = null;
 }
 
-async function finish(): Promise<void> {
-  if (sending.value) return; // un solo envío aunque toquen dos veces
+// Manda las respuestas (o pide Nivel 0 sin IA) una sola vez aunque toquen dos veces
+async function send(withAi: boolean): Promise<void> {
+  if (sending.value) return;
   sending.value = true;
   errorCode.value = null;
   try {
-    await auth.finishPlacement(state.value.answers);
+    if (withAi) await auth.finishPlacement(state.value.answers);
+    else await auth.finishPlacementFallback();
     await router.replace({ name: "resultado" });
   } catch (error) {
     // Las respuestas se quedan en state: el botón vuelve a mandarlas
-    errorCode.value = error instanceof PlacementError ? error.code : "ia";
+    const code = error instanceof PlacementError ? error.code : "ia";
+    if (code === "ya-evaluado") {
+      // Ya la hizo en otra pestaña: se trae su perfil y el guard lo deja en Hoy
+      await auth.reloadProfile();
+      await router.replace({ name: "hoy" });
+      return;
+    }
+    errorCode.value = code;
   } finally {
     sending.value = false;
   }
 }
 
+function restart(): void {
+  state.value = startPlacement();
+  errorCode.value = null;
+  selected.value = null;
+  openAnswer.value = "";
+}
+
+async function enterAgain(): Promise<void> {
+  await auth.signOut();
+  await router.replace({ name: "bienvenida" });
+}
+
+// Botón rosa según lo que pasó: reintentar, empezar de nuevo o entrar otra vez
+function mainAction(): Promise<void> | void {
+  if (errorCode.value === "datos") return restart();
+  if (errorCode.value === "sesion") return enterAgain();
+  return send(true);
+}
+const mainLabel = computed(() => {
+  if (sending.value) return "Calculando tu nivel…";
+  if (errorCode.value === "datos") return "Empezar de nuevo";
+  if (errorCode.value === "sesion") return "Entrar otra vez";
+  if (errorCode.value) return "Intentar de nuevo";
+  return "Ver mi resultado";
+});
+
+// Si la IA no está disponible, se puede empezar en Nivel 0 sin gastar (spec 9: no dejar a nadie atorado).
+// Sin conexión no tendría caso: tampoco llegaría.
+const canFallback = computed(
+  () =>
+    errorCode.value === "presupuesto" ||
+    errorCode.value === "limite" ||
+    errorCode.value === "ia" ||
+    errorCode.value === "servidor",
+);
+
 // Avisos (diseño 4.2): qué pasó y qué sí se puede hacer
 const notice = computed(() => {
   switch (errorCode.value) {
     case null:
+    case "ya-evaluado":
       return null;
     case "presupuesto":
       return {
@@ -86,6 +132,27 @@ const notice = computed(() => {
         icon: "#i-nowifi",
         title: "Sin conexión a internet",
         body: "Tus respuestas siguen aquí. Revisa tu conexión y vuelve a intentar.",
+      };
+    case "servidor":
+      return {
+        tone: "bg-concrete",
+        icon: "#i-clock",
+        title: "No se guardó tu resultado",
+        body: "Tus respuestas siguen aquí. Intenta de nuevo en un momento.",
+      };
+    case "datos":
+      return {
+        tone: "bg-concrete",
+        icon: "#i-clock",
+        title: "Algo salió mal con tus respuestas",
+        body: "Vuelve a empezar la evaluación.",
+      };
+    case "sesion":
+      return {
+        tone: "bg-concrete",
+        icon: "#i-group",
+        title: "Tu sesión se cerró",
+        body: "Vuelve a entrar con Google para seguir.",
       };
     default:
       return {
@@ -269,18 +336,20 @@ const notice = computed(() => {
         </div>
       </div>
       <!-- Mientras la IA responde: el botón avisa y queda apagado (solo texto: la única animación es la de la línea) -->
-      <Button class="mt-4" :disabled="sending" @click="finish">
-        {{
-          sending
-            ? "Calculando tu nivel…"
-            : errorCode
-              ? "Intentar de nuevo"
-              : "Ver mi resultado"
-        }}
+      <Button class="mt-4" :disabled="sending" @click="mainAction">
+        {{ mainLabel }}
       </Button>
       <p v-if="sending" class="mt-2 text-xs text-ink-2" aria-live="polite">
         Tarda unos segundos.
       </p>
+      <Button
+        v-if="canFallback && !sending"
+        variant="quiet"
+        class="mt-2"
+        @click="send(false)"
+      >
+        Empezar en Nivel 0 por ahora
+      </Button>
     </template>
   </div>
 </template>
