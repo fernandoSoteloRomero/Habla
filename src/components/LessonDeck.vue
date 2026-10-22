@@ -1,20 +1,26 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { supportFor } from "@shared/sessionPrompts";
 import PictoTile from "@/components/PictoTile.vue";
+import SayItAloud from "@/components/SayItAloud.vue";
 import { Button } from "@/components/ui/button";
 import { addDays } from "@/common/Dates";
 import { useSpeechOutput } from "@/composables/useSpeechOutput";
 import { getLevel } from "@/curriculum/levels";
 import type { KeyPhrase, Unit } from "@/curriculum/units";
 import PhrasesService from "@/Services/Phrases/PhrasesService";
+import type { LessonExtra } from "@/Services/interfaces/Session/SessionInterface";
 import { useAuthStore } from "@/stores/auth";
 
-// Aprender (pantalla 2.3): frases nuevas de la meta con su significado, audio y nota.
-// Al terminar entran al repaso para mañana. "Otro ejemplo" y "Decirla en voz alta" llegan con la IA (fase 4).
+// Aprender (pantalla 2.3): frases nuevas de la meta con su significado, audio, nota,
+// "Otro ejemplo" (lo escribe la IA según el motivo) y "Decirla en voz alta".
+// Al terminar entran al repaso para mañana. Sin IA, se ve igual pero sin el ejemplo.
 const props = defineProps<{
   unit: Unit;
   phrases: KeyPhrase[];
   today: string;
+  // Llegan cuando la IA termina de preparar la sesión (pueden llegar tarde)
+  extras?: LessonExtra[];
 }>();
 const emit = defineEmits<{ done: [] }>();
 
@@ -27,6 +33,14 @@ const saveFailed = ref(false);
 const phrase = computed(() => props.phrases[index.value]);
 const isLast = computed(() => index.value === props.phrases.length - 1);
 const color = computed(() => getLevel(props.unit.nivel).color);
+const extra = computed(() =>
+  props.extras?.find((e) => e.en === phrase.value?.en),
+);
+const nota = computed(() => phrase.value?.nota || extra.value?.nota || "");
+// L0 y A1 ven la traducción del ejemplo (spec 5.3)
+const showTranslation = computed(
+  () => supportFor(props.unit.nivel).translationVisible,
+);
 
 async function next(): Promise<void> {
   if (!isLast.value) {
@@ -87,13 +101,26 @@ async function next(): Promise<void> {
 
     <!-- Nota corta (diseño: .l-note) -->
     <p
-      v-if="phrase.nota"
+      v-if="nota"
       class="mt-3.5 rounded-[4px_10px_10px_4px] border-l-[5px] border-yellow bg-yellow-soft px-[11px] py-[9px] text-sm leading-snug"
     >
-      {{ phrase.nota }}
+      {{ nota }}
     </p>
 
+    <!-- Otro ejemplo (lo escribe la IA según el motivo) -->
+    <template v-if="extra?.ejemplo_en">
+      <p class="mt-3 text-[13px] text-ink-2">Otro ejemplo</p>
+      <p class="mt-0.5 text-[15px] font-bold" lang="en">
+        {{ extra.ejemplo_en }}
+      </p>
+      <p v-if="showTranslation" class="text-sm text-ink-2">
+        {{ extra.ejemplo_es }}
+      </p>
+    </template>
+
     <div class="flex-1" />
+
+    <SayItAloud :key="phrase.en" :phrase="phrase.en" class="mt-4" />
 
     <div
       v-if="saveFailed"

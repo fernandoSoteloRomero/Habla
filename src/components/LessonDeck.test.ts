@@ -21,7 +21,7 @@ const unit = getUnit("a2-junta");
 const phrases = unit.frases_clave.slice(1, 3); // las dos traen nota
 const speak = vi.fn();
 
-function setup(): VueWrapper {
+function setup(over: Record<string, unknown> = {}): VueWrapper {
   vi.mocked(useSpeechOutput).mockReturnValue({ supported: true, speak });
   const pinia = createPinia();
   setActivePinia(pinia);
@@ -37,7 +37,7 @@ function setup(): VueWrapper {
     placed_at: "2026-10-21T15:00:00Z",
   };
   return mount(LessonDeck, {
-    props: { unit, phrases, today: "2026-10-22" },
+    props: { unit, phrases, today: "2026-10-22", ...over },
     global: { plugins: [pinia] },
   });
 }
@@ -82,6 +82,48 @@ describe("LessonDeck", () => {
       "2026-10-23",
     );
     expect(w.emitted("done")).toHaveLength(1);
+  });
+  it("con lo que preparó la IA muestra 'Otro ejemplo' (en A2, sin traducción)", async () => {
+    const w = setup({
+      extras: [
+        {
+          en: phrases[0].en,
+          nota: "",
+          ejemplo_en: "I'm in charge of the sales team.",
+          ejemplo_es: "Estoy a cargo del equipo de ventas.",
+        },
+      ],
+    });
+    expect(w.text()).toContain("Otro ejemplo");
+    expect(w.text()).toContain("I'm in charge of the sales team.");
+    expect(w.text()).not.toContain("Estoy a cargo del equipo de ventas.");
+    // La segunda frase no trae ejemplo: se ve como antes
+    await button(w, "Siguiente frase").trigger("click");
+    expect(w.text()).not.toContain("Otro ejemplo");
+  });
+  it("en A1 el ejemplo trae su traducción, y si la frase no trae nota usa la de la IA", () => {
+    const a1 = getUnit("a1-cafeteria");
+    const w = setup({
+      unit: a1,
+      phrases: [{ en: "A small coffee, please.", es: "Un café chico." }],
+      extras: [
+        {
+          en: "A small coffee, please.",
+          nota: "En EE. UU. los tamaños son small, medium y large.",
+          ejemplo_en: "A large tea, please.",
+          ejemplo_es: "Un té grande, por favor.",
+        },
+      ],
+    });
+    expect(w.text()).toContain("Un té grande, por favor.");
+    expect(w.text()).toContain(
+      "En EE. UU. los tamaños son small, medium y large.",
+    );
+  });
+  it("trae 'Decirla en voz alta' como acción secundaria", () => {
+    const w = setup();
+    expect(button(w, "Decirla en voz alta").classes()).not.toContain("bg-rosa");
+    expect(button(w, "Siguiente frase").classes()).toContain("bg-rosa");
   });
   it("si no se guardaron, avisa y no termina", async () => {
     vi.mocked(PhrasesService.AddLessonPhrases).mockRejectedValue(
