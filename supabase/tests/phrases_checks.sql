@@ -83,5 +83,21 @@ begin
     'FALLO: cambiaron las frases de Beto';
 end $$;
 
+-- El avance temporal no cuenta las correcciones de la conversación: Beto tiene 5 de lección
+-- y 1 corrección de su meta, así que todavía no avanza
+insert into public.phrases (user_id, en, es, source, unit_id, due_on) values
+  ('00000000-0000-4000-8000-00000000000b', 'b2', 'b2', 'leccion', 'l0-saludar', '2026-10-23'),
+  ('00000000-0000-4000-8000-00000000000b', 'b3', 'b3', 'leccion', 'l0-saludar', '2026-10-23'),
+  ('00000000-0000-4000-8000-00000000000b', 'b4', 'b4', 'leccion', 'l0-saludar', '2026-10-23'),
+  ('00000000-0000-4000-8000-00000000000b', 'b5', 'b5', 'leccion', 'l0-saludar', '2026-10-23'),
+  ('00000000-0000-4000-8000-00000000000b', 'Hi there.', 'Hola.', 'correccion', 'l0-saludar', '2026-10-23');
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-8000-00000000000b","role":"authenticated"}';
+do $$
+begin
+  assert public.advance_unit('l0-numeros', 'L0', 6) = false, 'FALLO: avanzó contando una corrección';
+end $$;
+reset role;
+
 rollback;
 select 'OK: pruebas de la fase 3' as resultado;

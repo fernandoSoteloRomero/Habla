@@ -23,6 +23,15 @@ begin
     raise exception 'FALLO: hubo dos sesiones el mismo día'; exception when unique_violation then null; end;
   begin update public.sessions set status = 'pausada';
     raise exception 'FALLO: aceptó un status inválido'; exception when check_violation then null; end;
+  -- Las conversaciones extra ("Seguir practicando") sí pueden ser varias el mismo día
+  assert (select kind from public.sessions where user_id = '00000000-0000-4000-8000-00000000000a') = 'diaria',
+    'FALLO: la sesión no es la del día por defecto';
+  insert into public.sessions (user_id, unit_id, date, kind) values
+    ('00000000-0000-4000-8000-00000000000a', 'a2-junta', '2026-10-22', 'practica'),
+    ('00000000-0000-4000-8000-00000000000a', 'a2-junta', '2026-10-22', 'practica');
+  begin insert into public.sessions (user_id, unit_id, date, kind) values
+      ('00000000-0000-4000-8000-00000000000a', 'a2-junta', '2026-10-22', 'otra');
+    raise exception 'FALLO: aceptó un tipo de sesión inválido'; exception when check_violation then null; end;
 end $$;
 
 -- Ana (authenticated)
@@ -31,8 +40,16 @@ set local request.jwt.claims = '{"sub":"00000000-0000-4000-8000-00000000000a","r
 
 do $$
 begin
-  assert (select count(*) from public.sessions) = 1, 'FALLO: Ana ve sesiones ajenas o no ve la suya';
-  assert (select unit_id from public.sessions) = 'a2-junta', 'FALLO: Ana no ve su sesión';
+  assert (select count(*) from public.sessions) = 3, 'FALLO: Ana ve sesiones ajenas o no ve las suyas';
+  assert (select unit_id from public.sessions where kind = 'diaria') = 'a2-junta', 'FALLO: Ana no ve su sesión';
+
+  -- Ana elige cuánta ayuda quiere en la conversación, pero no puede cambiar su nivel
+  update public.profiles set ayuda = 'guiada';
+  assert (select ayuda from public.profiles) = 'guiada', 'FALLO: Ana no pudo guardar su nivel de ayuda';
+  begin update public.profiles set ayuda = 'mucha';
+    raise exception 'FALLO: aceptó un nivel de ayuda inválido'; exception when check_violation then null; end;
+  begin update public.profiles set level = 'B1';
+    raise exception 'FALLO: Ana pudo cambiar su nivel'; exception when insufficient_privilege then null; end;
 
   begin insert into public.sessions (user_id, unit_id, date) values
       ('00000000-0000-4000-8000-00000000000a', 'a2-junta', '2026-10-23');
@@ -55,7 +72,10 @@ end $$;
 reset role;
 do $$
 begin
-  assert (select count(*) from public.sessions) = 2, 'FALLO: cambiaron las sesiones';
+  -- Solo las de Ana y Beto: la tabla real puede tener otras sesiones
+  assert (select count(*) from public.sessions
+          where user_id in ('00000000-0000-4000-8000-00000000000a', '00000000-0000-4000-8000-00000000000b')) = 4,
+    'FALLO: cambiaron las sesiones';
 end $$;
 
 rollback;
