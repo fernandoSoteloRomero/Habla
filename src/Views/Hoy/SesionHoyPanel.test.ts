@@ -65,6 +65,13 @@ describe("SesionHoyPanel", () => {
     expect(w.text()).not.toContain("Empezar sesión");
     expect(w.text()).toContain("Ya aprendiste las frases de esta meta");
   });
+  it("con las frases nuevas de hoy ya aprendidas dice que vuelva mañana", () => {
+    const w = setup({ pending: 0, newCount: 0, unitDone: false });
+    expect(w.text()).toContain("Ya aprendiste tus frases nuevas de hoy");
+    expect(w.text()).toContain("Ya hiciste tu sesión de hoy. Vuelve mañana.");
+    expect(w.text()).not.toContain("Empezar sesión");
+    expect(w.find('[data-testid="avance"]').exists()).toBe(false);
+  });
   it("con la meta completa y nada que repasar, la acción rosa es seguir a la próxima estación", async () => {
     vi.mocked(ProfileService.AdvanceUnit).mockResolvedValue(true);
     const w = setup({ pending: 0, newCount: 0, unitDone: true });

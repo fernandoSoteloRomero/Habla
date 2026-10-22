@@ -31,12 +31,13 @@ const learned = ref(0);
 async function load(): Promise<void> {
   stage.value = "cargando";
   try {
-    const [queue, learnedEn] = await Promise.all([
+    const [queue, learnedEn, learnedToday] = await Promise.all([
       PhrasesService.GetReviewQueue(today),
       PhrasesService.GetLearnedEn(unit.value.id),
+      PhrasesService.CountLearnedToday(today),
     ]);
     toReview.value = queue.phrases;
-    toLearn.value = pickNewPhrases(unit.value, learnedEn);
+    toLearn.value = pickNewPhrases(unit.value, learnedEn, learnedToday);
     stage.value =
       toReview.value.length > 0
         ? "repasar"

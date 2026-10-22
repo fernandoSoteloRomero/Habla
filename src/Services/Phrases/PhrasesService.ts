@@ -1,4 +1,4 @@
-import { addDays } from "@/common/Dates";
+import { addDays, localDayStart } from "@/common/Dates";
 import { MAX_REVIEWS_PER_DAY } from "@/common/SpacedRepetition";
 import type { SrsUpdate } from "@/common/SpacedRepetition";
 import type { KeyPhrase } from "@/curriculum/units";
@@ -73,6 +73,18 @@ export default {
       .eq("unit_id", unitId);
     if (error) throw error;
     return (data ?? []).map((row) => (row as { en: string }).en);
+  },
+
+  // Cuántas frases de lección agregó hoy (desde la medianoche local): Aprender da máximo 4 al día.
+  // Las correcciones de la conversación (fase 4) no cuentan.
+  async CountLearnedToday(today: string): Promise<number> {
+    const { count, error } = await supabase
+      .from("phrases")
+      .select("id", { count: "exact", head: true })
+      .eq("source", "leccion")
+      .gte("created_at", localDayStart(today));
+    if (error) throw error;
+    return count ?? 0;
   },
 
   async GetStats(today: string): Promise<PhraseStats> {

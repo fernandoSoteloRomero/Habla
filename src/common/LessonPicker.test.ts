@@ -24,7 +24,14 @@ describe("lección del día", () => {
     expect(pickNewPhrases(unit, learned)).toEqual([]);
     expect(allLearned(unit, learned)).toBe(true);
   });
-  it("respeta un máximo distinto", () => {
-    expect(pickNewPhrases(unit, [], 3)).toHaveLength(3);
+  it("el máximo es por día: con 3 aprendidas hoy (de otra meta) solo da 1", () => {
+    expect(pickNewPhrases(unit, [], 3).map((f) => f.en)).toEqual(
+      en.slice(0, 1),
+    );
+  });
+  it("con 4 o más aprendidas hoy ya no da nuevas, aunque falten en la meta", () => {
+    expect(pickNewPhrases(unit, en.slice(0, 4), 4)).toEqual([]);
+    expect(pickNewPhrases(unit, [], 6)).toEqual([]);
+    expect(allLearned(unit, en.slice(0, 4))).toBe(false);
   });
 });

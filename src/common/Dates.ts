@@ -8,6 +8,12 @@ export function localDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+// La medianoche local de "AAAA-MM-DD" como instante ISO, para comparar con columnas timestamptz
+export function localDayStart(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(y, m - 1, d).toISOString();
+}
+
 // Suma días a una fecha "AAAA-MM-DD". Usa UTC solo para contar días (sin horario de verano).
 export function addDays(date: string, days: number): string {
   const [y, m, d] = date.split("-").map(Number);

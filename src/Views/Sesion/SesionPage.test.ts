@@ -17,6 +17,7 @@ vi.mock("@/Services/Phrases/PhrasesService", () => ({
   default: {
     GetReviewQueue: vi.fn(),
     GetLearnedEn: vi.fn(),
+    CountLearnedToday: vi.fn(),
     SaveReview: vi.fn(),
     AddLessonPhrases: vi.fn(),
   },
@@ -42,6 +43,7 @@ const review = (n: number): Phrase[] =>
 async function setup(
   toReview: number,
   learnedEn: string[],
+  learnedToday = 0,
 ): Promise<VueWrapper> {
   vi.mocked(useSpeechOutput).mockReturnValue({
     supported: true,
@@ -52,6 +54,7 @@ async function setup(
     reviewedToday: 0,
   });
   vi.mocked(PhrasesService.GetLearnedEn).mockResolvedValue(learnedEn);
+  vi.mocked(PhrasesService.CountLearnedToday).mockResolvedValue(learnedToday);
   vi.mocked(PhrasesService.SaveReview).mockResolvedValue();
   vi.mocked(PhrasesService.AddLessonPhrases).mockResolvedValue();
   const pinia = createPinia();
@@ -126,6 +129,22 @@ describe("SesionPage", () => {
     expect(w.text()).toContain("Repasaste 2 frases");
     expect(w.text()).not.toContain("Aprendiste");
   });
+  it("el máximo de frases nuevas es por día: con 2 aprendidas hoy solo enseña 2", async () => {
+    const w = await setup(0, [], 2);
+    expect(w.text()).toContain("Frase nueva 1 de 2");
+  });
+  it("con 4 aprendidas hoy ya no enseña más: solo repasa", async () => {
+    const w = await setup(
+      1,
+      unit.frases_clave.slice(0, 4).map((f) => f.en),
+      4,
+    );
+    await click(w, "Ver significado");
+    await click(w, "Fácil");
+    expect(stage(w)).toBe("resumen");
+    expect(w.text()).not.toContain("Aprendiste");
+    expect(PhrasesService.AddLessonPhrases).not.toHaveBeenCalled();
+  });
   it("si no se pudo cargar, avisa y deja reintentar", async () => {
     vi.mocked(useSpeechOutput).mockReturnValue({
       supported: true,
@@ -135,6 +154,9 @@ describe("SesionPage", () => {
       new TypeError("x"),
     );
     vi.mocked(PhrasesService.GetLearnedEn).mockRejectedValue(
+      new TypeError("x"),
+    );
+    vi.mocked(PhrasesService.CountLearnedToday).mockRejectedValue(
       new TypeError("x"),
     );
     const pinia = createPinia();

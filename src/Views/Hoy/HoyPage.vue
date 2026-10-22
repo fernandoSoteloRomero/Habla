@@ -37,13 +37,19 @@ const unitDone = ref(false);
 
 async function loadSession(): Promise<void> {
   status.value = "cargando";
+  const today = localDate(new Date());
   try {
-    const [queue, learnedEn] = await Promise.all([
-      PhrasesService.GetReviewQueue(localDate(new Date())),
+    const [queue, learnedEn, learnedToday] = await Promise.all([
+      PhrasesService.GetReviewQueue(today),
       PhrasesService.GetLearnedEn(current.value.id),
+      PhrasesService.CountLearnedToday(today),
     ]);
     pending.value = queue.phrases.length;
-    newCount.value = pickNewPhrases(current.value, learnedEn).length;
+    newCount.value = pickNewPhrases(
+      current.value,
+      learnedEn,
+      learnedToday,
+    ).length;
     unitDone.value = allLearned(current.value, learnedEn);
     status.value = "listo";
   } catch (error) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, localDate } from "./Dates";
+import { addDays, localDate, localDayStart } from "./Dates";
 
 describe("fechas locales", () => {
   it("localDate usa la fecha del teléfono, no la de UTC", () => {
@@ -12,5 +12,14 @@ describe("fechas locales", () => {
     expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
     expect(addDays("2026-02-27", 3)).toBe("2026-03-02");
     expect(addDays("2026-10-22", 25)).toBe("2026-11-16");
+  });
+  it("localDayStart es la medianoche local de ese día", () => {
+    const start = new Date(localDayStart("2026-10-22"));
+    expect(localDate(start)).toBe("2026-10-22");
+    expect(start.getHours()).toBe(0);
+    expect(start.getMinutes()).toBe(0);
+    expect(localDayStart("2026-10-22")).toBe(
+      new Date(2026, 9, 22).toISOString(),
+    );
   });
 });

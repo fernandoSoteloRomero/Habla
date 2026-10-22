@@ -14,6 +14,7 @@ vi.mock("@/Services/Phrases/PhrasesService", () => ({
       .fn()
       .mockResolvedValue({ phrases: [], reviewedToday: 0 }),
     GetLearnedEn: vi.fn().mockResolvedValue([]),
+    CountLearnedToday: vi.fn().mockResolvedValue(0),
   },
 }));
 vi.mock("@/Services/Profile/ProfileService", () => ({
@@ -82,5 +83,28 @@ describe("HoyPage", () => {
     );
     expect(PhrasesService.GetLearnedEn).toHaveBeenLastCalledWith("a2-trabajo");
     expect(movil.text()).toContain("Aprender 4 frases nuevas");
+  });
+  it("si hoy ya aprendió 4 frases nuevas, no ofrece otra sesión", async () => {
+    vi.mocked(PhrasesService.GetLearnedEn).mockResolvedValueOnce([]);
+    vi.mocked(PhrasesService.CountLearnedToday).mockResolvedValueOnce(4);
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    useAuthStore().profile = {
+      user_id: "u1",
+      name: "Fernando Sotelo",
+      motive: "ambos",
+      level: "A2",
+      current_unit_id: "a2-junta",
+      is_admin: false,
+      placed_at: null,
+    };
+    const w = mount(HoyPage, { global: { plugins: [pinia] } });
+    await flushPromises();
+    const movil = w.get('[data-testid="linea-movil"]');
+    expect(PhrasesService.CountLearnedToday).toHaveBeenCalledWith("2026-10-19");
+    expect(movil.text()).toContain(
+      "Ya hiciste tu sesión de hoy. Vuelve mañana.",
+    );
+    expect(movil.text()).not.toContain("Empezar sesión");
   });
 });

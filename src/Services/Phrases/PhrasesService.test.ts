@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { localDayStart } from "@/common/Dates";
 import { supabase } from "@/lib/supabase";
 import PhrasesService from "./PhrasesService";
 
@@ -137,6 +138,16 @@ describe("PhrasesService", () => {
     expect(week).toContainEqual(["lte", "due_on", "2026-10-29"]);
     expect(hardest).toContainEqual(["gt", "lapses", 0]);
     expect(hardest).toContainEqual(["limit", 3]);
+  });
+  it("CountLearnedToday cuenta las frases de lección agregadas desde la medianoche local", async () => {
+    const [calls] = queue({ count: 3, error: null });
+    expect(await PhrasesService.CountLearnedToday("2026-10-22")).toBe(3);
+    expect(calls).toContainEqual(["eq", "source", "leccion"]);
+    expect(calls).toContainEqual([
+      "gte",
+      "created_at",
+      localDayStart("2026-10-22"),
+    ]);
   });
   it("si una consulta falla, lanza el error", async () => {
     queue({ count: null, error: new Error("sin red") });

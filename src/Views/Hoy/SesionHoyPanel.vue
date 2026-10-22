@@ -33,10 +33,13 @@ const steps = computed(() => [
     muted: props.pending === 0,
   },
   {
+    // Sin frases nuevas: o ya están las 6 de la meta, o ya aprendió las 4 del día
     text:
       props.newCount > 0
         ? `Aprender ${props.newCount} frases nuevas`
-        : "Ya aprendiste las frases de esta meta",
+        : props.unitDone
+          ? "Ya aprendiste las frases de esta meta"
+          : "Ya aprendiste tus frases nuevas de hoy",
     muted: props.newCount === 0,
   },
   { text: "Conversar (llega pronto)", muted: true },
@@ -117,6 +120,9 @@ async function advance(): Promise<void> {
       <Button v-if="canStart" @click="router.push({ name: 'sesion' })">
         Empezar sesión
       </Button>
+      <p v-else-if="!unitDone" class="text-sm font-bold">
+        Ya hiciste tu sesión de hoy. Vuelve mañana.
+      </p>
       <template v-if="unitDone">
         <p v-if="isLastUnit" class="text-sm font-bold">
           Llegaste al final de la ruta.
