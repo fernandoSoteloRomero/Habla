@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { firstUnitOf } from "@shared/placementLogic.ts";
+import { firstUnitOf } from "../placementLogic.ts";
 import { levels } from "./levels.ts";
-import { getUnit, units } from "./units.ts";
+import { getUnit, sceneFor, units } from "./units.ts";
 
 describe("temario", () => {
   it("tiene 4, 5, 8 y 6 metas por nivel", () => {
@@ -74,5 +74,45 @@ describe("frases clave", () => {
         u.id,
       ).toBeGreaterThanOrEqual(2),
     );
+  });
+});
+
+describe("escenas de la conversación", () => {
+  const scenes = units.flatMap((u) => [
+    { id: `${u.id} trabajo`, s: u.escenas?.trabajo },
+    { id: `${u.id} viajes`, s: u.escenas?.viajes },
+  ]);
+
+  it("cada meta tiene una escena de trabajo y una de viajes", () => {
+    scenes.forEach(({ id, s }) => expect(s, id).toBeDefined());
+  });
+  it("los textos tienen el largo esperado y el personaje lleva artículo", () => {
+    scenes.forEach(({ id, s }) => {
+      expect(s.personaje_es, id).toMatch(/^(el|la|tu|un|una) /);
+      expect(s.personaje_es.length, id).toBeLessThanOrEqual(40);
+      expect(s.rol_en.length, id).toBeGreaterThan(10);
+      expect(s.rol_en.length, id).toBeLessThanOrEqual(160);
+      expect(s.escena_es.length, id).toBeGreaterThan(10);
+      expect(s.escena_es.length, id).toBeLessThanOrEqual(120);
+      expect(s.objetivo_es.length, id).toBeGreaterThan(10);
+      expect(s.objetivo_es.length, id).toBeLessThanOrEqual(120);
+      expect(["waiter", "person"], id).toContain(s.pictograma);
+    });
+  });
+  it("sin '·', sin '¡' y sin emojis", () => {
+    scenes.forEach(({ id, s }) => {
+      const text = `${s.personaje_es} ${s.rol_en} ${s.escena_es} ${s.objetivo_es}`;
+      expect(text, id).not.toMatch(/[·¡]/);
+      expect(text, id).not.toMatch(/\p{Extended_Pictographic}/u);
+    });
+  });
+  it("sceneFor elige por motivo; con 'ambos' o sin motivo alterna por día", () => {
+    const unit = getUnit("a2-restaurante");
+    expect(sceneFor(unit, "trabajo", "2026-10-23")).toBe(unit.escenas.trabajo);
+    expect(sceneFor(unit, "viajes", "2026-10-22")).toBe(unit.escenas.viajes);
+    expect(sceneFor(unit, "ambos", "2026-10-22")).toBe(unit.escenas.trabajo);
+    expect(sceneFor(unit, "ambos", "2026-10-23")).toBe(unit.escenas.viajes);
+    expect(sceneFor(unit, null, "2026-10-22")).toBe(unit.escenas.trabajo);
+    expect(sceneFor(unit, null, "2026-10-23")).toBe(unit.escenas.viajes);
   });
 });
