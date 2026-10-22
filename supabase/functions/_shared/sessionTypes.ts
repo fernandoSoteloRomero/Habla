@@ -11,6 +11,11 @@ export interface LessonExtra {
   nota: string;
   ejemplo_en: string;
   ejemplo_es: string;
+  // Para el ejercicio de completar: la parte de `en` que se esconde, 2 opciones trampa y por qué
+  // la buena es la buena. hueco vacío = esta frase no tiene ejercicio de completar.
+  hueco: string;
+  trampas: string[];
+  por_que: string;
 }
 
 // Lo que se prepara al empezar la sesión (sessions.content)

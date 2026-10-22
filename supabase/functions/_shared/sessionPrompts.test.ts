@@ -202,9 +202,9 @@ describe("parseTurnOutput", () => {
 describe("start y close", () => {
   const phrases = unit.frases_clave.slice(0, 2);
 
-  it("buildStartParams manda las frases nuevas y pide 900 tokens", () => {
+  it("buildStartParams manda las frases nuevas y pide 1400 tokens", () => {
     const p = buildStartParams(ctx(), phrases);
-    expect(p.max_tokens).toBe(900);
+    expect(p.max_tokens).toBe(1400);
     expect(p.messages[0].content).toContain(phrases[0].en);
     expect(p.messages[0].content).toContain(phrases[1].en);
   });
@@ -238,6 +238,56 @@ describe("start y close", () => {
     expect(out?.frases[0].nota).toBe(phrases[0].nota ? "" : "Nota uno.");
     expect(out?.sugerencias).toHaveLength(3);
     expect(out?.apertura_en).toBe("Hi! Ready to order?");
+  });
+  it("parseStartOutput arma el ejercicio de completar solo si el hueco está en la frase", () => {
+    const phrase = {
+      en: "I'd like the chicken, please.",
+      es: "Quisiera el pollo.",
+    };
+    const read = (item: Record<string, unknown>): unknown =>
+      parseStartOutput(
+        JSON.stringify({
+          frases: [
+            {
+              en: phrase.en,
+              nota: "",
+              ejemplo_en: "x",
+              ejemplo_es: "x",
+              hueco: "",
+              trampas: [],
+              por_que: "",
+              ...item,
+            },
+          ],
+          apertura_en: "Hi!",
+          apertura_es: "Hola.",
+          sugerencias: [],
+        }),
+        [phrase],
+        "A2",
+      )?.frases[0];
+
+    // Se toma como aparece en la frase, aunque la IA cambie mayúsculas
+    expect(
+      read({
+        hueco: "I'D LIKE",
+        trampas: ["I want", "I like", "I want"],
+        por_que: "“I'd like” es la forma amable de pedir.",
+      }),
+    ).toMatchObject({
+      hueco: "I'd like",
+      trampas: ["I want", "I like"],
+      por_que: "“I'd like” es la forma amable de pedir.",
+    });
+    // Un hueco que no está en la frase, o sin 2 trampas distintas de la respuesta, no sirve
+    const none = { hueco: "", trampas: [], por_que: "" };
+    expect(read({ hueco: "I would like", trampas: ["a", "b"] })).toMatchObject(
+      none,
+    );
+    expect(
+      read({ hueco: "I'd like", trampas: ["i'd like", "want"] }),
+    ).toMatchObject(none);
+    expect(read({ hueco: phrase.en, trampas: ["a", "b"] })).toMatchObject(none);
   });
   it("parseStartOutput sin apertura regresa null", () => {
     expect(

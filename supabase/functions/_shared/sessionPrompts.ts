@@ -82,6 +82,10 @@ export const START_SYSTEM = `Preparas la sesión del día en Habla, una app dond
    - "ejemplo_en": otra frase corta en inglés de Estados Unidos que usa la misma estructura en otra situación de la vida real, de preferencia del motivo de la persona (trabajo o viajes). Del nivel de la persona y de máximo 12 palabras.
    - "ejemplo_es": su traducción al español de México.
    - "nota": si la frase ya trae nota, déjala vacía. Si no trae, un consejo de uso en español de máximo 15 palabras: cuándo se usa, qué suena más amable o un error típico de hispanohablantes.
+   - Para un ejercicio de completar la frase:
+     - "hueco": la parte clave de la frase, de 1 a 3 palabras completas y seguidas, copiada exactamente como aparece en "en". Elige lo que más conviene recordar, no un artículo.
+     - "trampas": 2 versiones equivocadas del mismo hueco, como las que escribiría un hispanohablante: otra conjugación, otra preposición, un "to" de más, el orden al revés o una traducción literal del español. Por ejemplo, para "see the menu": "to see the menu" y "seeing the menu"; para "for two": "of two" y "to two"; para "I'm from": "I'm of" y "I from". No uses otra palabra distinta que también tenga sentido en la frase.
+     - "por_que": por qué la opción buena es la buena, en español, de máximo 15 palabras.
 2. "apertura_en": lo primero que dice tu personaje para empezar la escena: un saludo corto y una pregunta, del nivel de la persona y de máximo 20 palabras. "apertura_es": su traducción al español de México.
 3. "sugerencias": 3 respuestas cortas en inglés, de máximo 6 palabras cada una, que la persona podría contestar a tu apertura.
 
@@ -128,8 +132,24 @@ const START_SCHEMA = {
       type: "array",
       items: {
         type: "object",
-        properties: { en: str, nota: str, ejemplo_en: str, ejemplo_es: str },
-        required: ["en", "nota", "ejemplo_en", "ejemplo_es"],
+        properties: {
+          en: str,
+          nota: str,
+          ejemplo_en: str,
+          ejemplo_es: str,
+          hueco: str,
+          trampas: strList,
+          por_que: str,
+        },
+        required: [
+          "en",
+          "nota",
+          "ejemplo_en",
+          "ejemplo_es",
+          "hueco",
+          "trampas",
+          "por_que",
+        ],
         additionalProperties: false,
       },
     },
@@ -234,7 +254,7 @@ export function buildStartParams(
     phrases.length > 0
       ? ["Frases nuevas de hoy:", ...lines].join("\n")
       : "Hoy no hay frases nuevas: regresa la lista de frases vacía.";
-  return baseParams(START_SYSTEM, ctx, START_SCHEMA, 900, [
+  return baseParams(START_SYSTEM, ctx, START_SCHEMA, 1400, [
     { role: "user", content },
   ]);
 }
@@ -330,6 +350,25 @@ export function parseTurnOutput(
   };
 }
 
+// El ejercicio de completar solo vale si el hueco está de verdad en la frase (se toma como aparece)
+// y hay 2 trampas distintas de la respuesta. Si no, la frase se queda sin ese ejercicio.
+function readGap(
+  en: string,
+  item: Record<string, unknown>,
+): Pick<LessonExtra, "hueco" | "trampas" | "por_que"> {
+  const none = { hueco: "", trampas: [], por_que: "" };
+  const wanted = clean(item.hueco, 40);
+  const at = wanted ? en.toLowerCase().indexOf(wanted.toLowerCase()) : -1;
+  if (at < 0 || wanted.length >= en.length) return none;
+  const hueco = en.slice(at, at + wanted.length);
+  const trampas = cleanList(item.trampas, 40, 5)
+    .filter((t) => !sameText(t, hueco))
+    .filter((t, i, all) => all.findIndex((o) => sameText(o, t)) === i)
+    .slice(0, 2);
+  if (trampas.length < 2) return none;
+  return { hueco, trampas, por_que: clean(item.por_que, 140) };
+}
+
 export function parseStartOutput(
   text: string,
   phrases: KeyPhrase[],
@@ -355,6 +394,7 @@ export function parseStartOutput(
       nota: phrase.nota ? "" : clean(item.nota, 140),
       ejemplo_en: clean(item.ejemplo_en, 200),
       ejemplo_es: clean(item.ejemplo_es, 200),
+      ...readGap(phrase.en, item),
     });
   }
 

@@ -179,7 +179,7 @@ const CASES: Case[] = [
     level: "A2",
     unitId: "a2-direcciones",
     opener: "Hi there. Can I help you?",
-    text: "Excuse me, how do I get to the museum?",
+    text: "Excuse me, how do I get to the meeting room?",
     corregir: false,
   },
   {
@@ -296,19 +296,32 @@ describe("conversación con la IA", () => {
   });
 
   it("al preparar la sesión da un ejemplo para cada frase y la apertura", async () => {
-    const ctx = context("a2-restaurante", "A2");
-    const phrases = ctx.unit.frases_clave.slice(0, 2);
-    const out = parseStartOutput(
-      await ask(buildStartParams(ctx, phrases)),
-      phrases,
-      "A2",
+    // Una meta distinta de los ejemplos del prompt, para ver que no solo los copie
+    const ctx = context("a2-hotel", "A2");
+    const phrases = ctx.unit.frases_clave.slice(0, 4);
+    const text = await ask(buildStartParams(ctx, phrases));
+    // Lo que mandó la IA, para revisar a ojo que las trampas de verdad estén mal
+    const raw = JSON.parse(text) as {
+      frases: { en: string; hueco: string; trampas: string[] }[];
+    };
+    console.log(
+      raw.frases
+        .map((f) => `${f.en} → [${f.hueco}] trampas: ${f.trampas.join(", ")}`)
+        .join("\n"),
     );
+    const out = parseStartOutput(text, phrases, "A2");
     expect(out).not.toBeNull();
     expect(out?.frases.map((f) => f.en)).toEqual(phrases.map((p) => p.en));
     out?.frases.forEach((f) => {
       expect(f.ejemplo_en, f.en).not.toBe("");
       expect(f.ejemplo_es, f.en).not.toBe("");
+      expect(f.en, f.en).toContain(f.hueco);
     });
+    // El ejercicio de completar: al menos 3 de 4 frases lo traen bien armado
+    const withGap = out?.frases.filter(
+      (f) => f.hueco !== "" && f.trampas.length === 2 && f.por_que !== "",
+    );
+    expect(withGap?.length).toBeGreaterThanOrEqual(3);
     expect(out?.apertura_en).not.toBe("");
   });
 
