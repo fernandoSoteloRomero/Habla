@@ -39,3 +39,40 @@ describe("temario", () => {
     });
   });
 });
+
+describe("frases clave", () => {
+  const all = units.flatMap((u) => u.frases_clave);
+
+  it("cada meta tiene exactamente 6", () => {
+    units.forEach((u) => expect(u.frases_clave, u.id).toHaveLength(6));
+  });
+  it("inglés y español de 2 a 120 caracteres; notas de máximo 120", () => {
+    all.forEach((f) => {
+      expect(f.en.length, f.en).toBeGreaterThanOrEqual(2);
+      expect(f.en.length, f.en).toBeLessThanOrEqual(120);
+      expect(f.es.length, f.es).toBeGreaterThanOrEqual(2);
+      expect(f.es.length, f.es).toBeLessThanOrEqual(120);
+      if (f.nota) expect(f.nota.length, f.nota).toBeLessThanOrEqual(120);
+    });
+  });
+  it("ninguna frase en inglés se repite en todo el temario", () => {
+    const keys = all.map((f) => f.en.trim().toLowerCase());
+    const repeated = keys.filter((k, i) => keys.indexOf(k) !== i);
+    expect(repeated).toEqual([]);
+  });
+  it("sin '·', sin '¡' y sin emojis", () => {
+    all.forEach((f) => {
+      const text = `${f.en} ${f.es} ${f.nota ?? ""}`;
+      expect(text, text).not.toMatch(/[·¡]/);
+      expect(text, text).not.toMatch(/\p{Extended_Pictographic}/u);
+    });
+  });
+  it("al menos 2 frases de cada meta traen nota", () => {
+    units.forEach((u) =>
+      expect(
+        u.frases_clave.filter((f) => f.nota).length,
+        u.id,
+      ).toBeGreaterThanOrEqual(2),
+    );
+  });
+});
