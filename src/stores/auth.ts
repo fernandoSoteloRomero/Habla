@@ -10,6 +10,7 @@ import type {
   PlacementResult,
 } from "@/Services/interfaces/Placement/PlacementInterface";
 import type {
+  Ayuda,
   Motive,
   Profile,
 } from "@/Services/interfaces/Profile/ProfileInterface";
@@ -136,6 +137,24 @@ export const useAuthStore = defineStore("auth", {
         this.profile.placed_at = new Date().toISOString();
       }
       this.lastPlacement = result;
+    },
+
+    // "Más ayuda" / "Menos ayuda": se ve al momento; si no se pudo guardar, lanza el error
+    async setAyuda(ayuda: Ayuda): Promise<void> {
+      if (!this.profile) return;
+      const before = this.profile.ayuda ?? null;
+      this.profile.ayuda = ayuda;
+      try {
+        await ProfileService.SaveAyuda(this.profile.user_id, ayuda);
+      } catch (error) {
+        this.profile.ayuda = before;
+        throw error;
+      }
+    },
+
+    // La función ya la guardó al cerrar la sesión: aquí solo se refleja
+    applyAyuda(ayuda: Ayuda): void {
+      if (this.profile) this.profile.ayuda = ayuda;
     },
 
     // TEMPORAL (hasta la fase 5, que lo cambia por la conversación final): pasa a la siguiente

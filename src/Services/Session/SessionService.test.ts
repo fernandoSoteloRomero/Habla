@@ -69,16 +69,32 @@ describe("SessionService", () => {
       body: { action: "turn", sessionId: SESSION_ID, text: "Hello" },
     });
 
-    vi.mocked(supabase.functions.invoke).mockResolvedValue({
-      data: { summary: { bien: [], correcciones: [] }, minutes: 3 },
-      error: null,
-    } as never);
-    expect(await SessionService.Close(SESSION_ID)).toEqual({
+    const closed = {
       summary: { bien: [], correcciones: [] },
       minutes: 3,
-    });
+      ayuda: "libre",
+      siguiente: "conversar",
+    };
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      data: closed,
+      error: null,
+    } as never);
+    expect(await SessionService.Close(SESSION_ID)).toEqual(closed);
     expect(supabase.functions.invoke).toHaveBeenLastCalledWith("session", {
       body: { action: "close", sessionId: SESSION_ID },
+    });
+  });
+  it("StartPractice pide una conversación extra, sin frases nuevas", async () => {
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      data: { session: { id: "p1", kind: "practica" } },
+      error: null,
+    } as never);
+    expect(await SessionService.StartPractice("2026-10-22")).toEqual({
+      id: "p1",
+      kind: "practica",
+    });
+    expect(supabase.functions.invoke).toHaveBeenCalledWith("session", {
+      body: { action: "start", date: "2026-10-22", newEn: [], practice: true },
     });
   });
   it.each([
@@ -117,6 +133,8 @@ describe("SessionService", () => {
     const calls = fakeQuery({ data: { status: "terminada" }, error: null });
     expect(await SessionService.GetTodayStatus("2026-10-22")).toBe("terminada");
     expect(calls).toContainEqual(["eq", "date", "2026-10-22"]);
+    // Las conversaciones extra no cuentan como la sesión del día
+    expect(calls).toContainEqual(["eq", "kind", "diaria"]);
     fakeQuery({ data: null, error: null });
     expect(await SessionService.GetTodayStatus("2026-10-22")).toBe("ninguna");
   });
@@ -126,6 +144,7 @@ describe("SessionService", () => {
       await SessionService.CountPracticeDays("2026-10-19", "2026-10-22"),
     ).toBe(3);
     expect(calls).toContainEqual(["eq", "status", "terminada"]);
+    expect(calls).toContainEqual(["eq", "kind", "diaria"]);
     expect(calls).toContainEqual(["gte", "date", "2026-10-19"]);
     expect(calls).toContainEqual(["lte", "date", "2026-10-22"]);
   });

@@ -1,4 +1,7 @@
+import type { Ayuda } from "@shared/ayuda";
 import type { LevelId } from "@/curriculum/levels";
+
+export type { Ayuda };
 
 export type Motive = "trabajo" | "viajes" | "ambos";
 
@@ -12,4 +15,6 @@ export interface Profile {
   is_admin: boolean;
   // Se llena al terminar la evaluación inicial (fase 2); null mientras no la hace
   placed_at: string | null;
+  // Cuánta ayuda tiene en la conversación; null (o sin dato) = la de su nivel (ver ayuda.ts)
+  ayuda?: Ayuda | null;
 }

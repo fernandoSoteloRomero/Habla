@@ -1,6 +1,7 @@
 import type { LevelId } from "@/curriculum/levels";
 import { supabase } from "@/lib/supabase";
 import type {
+  Ayuda,
   Motive,
   Profile,
 } from "@/Services/interfaces/Profile/ProfileInterface";
@@ -11,7 +12,7 @@ export default {
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "user_id, name, motive, level, current_unit_id, is_admin, placed_at",
+        "user_id, name, motive, level, current_unit_id, is_admin, placed_at, ayuda",
       )
       .eq("user_id", userId)
       .maybeSingle();
@@ -33,6 +34,15 @@ export default {
     });
     if (error) throw error;
     return data === true;
+  },
+
+  // "Más ayuda" / "Menos ayuda" en la conversación (el RLS solo deja cambiar el propio)
+  async SaveAyuda(userId: string, ayuda: Ayuda): Promise<void> {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ ayuda })
+      .eq("user_id", userId);
+    if (error) throw error;
   },
 
   // El RLS solo deja cambiar el motivo de tu propio perfil

@@ -1,9 +1,9 @@
 import { FunctionsFetchError, FunctionsHttpError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import type {
+  CloseResult,
   PersonajeTurn,
   SessionClientError,
-  SessionSummary,
   SessionView,
   TodayStatus,
   Turn,
@@ -68,6 +68,17 @@ export default {
     return data.session;
   },
 
+  // "Seguir practicando": otra conversación con la otra escena de la meta (no es la del día)
+  async StartPractice(date: string): Promise<SessionView> {
+    const data = await callSession<{ session: SessionView }>({
+      action: "start",
+      date,
+      newEn: [],
+      practice: true,
+    });
+    return data.session;
+  },
+
   // Un turno de la conversación: el historial lo guarda la función
   Turn(
     sessionId: string,
@@ -76,19 +87,19 @@ export default {
     return callSession({ action: "turn", sessionId, text });
   },
 
-  // Termina la sesión; sin IA disponible, el resumen llega sin "Lo que hiciste bien"
-  Close(
-    sessionId: string,
-  ): Promise<{ summary: SessionSummary; minutes: number }> {
+  // Termina la sesión; sin IA disponible, el resumen llega sin "Lo que hiciste bien".
+  // También dice la ayuda de la próxima conversación y qué le conviene practicar ahora.
+  Close(sessionId: string): Promise<CloseResult> {
     return callSession({ action: "close", sessionId });
   },
 
-  // El RLS solo deja ver las sesiones propias
+  // La sesión del día (las conversaciones extra no cuentan). El RLS solo deja ver las propias.
   async GetTodayStatus(date: string): Promise<TodayStatus> {
     const { data, error } = await supabase
       .from("sessions")
       .select("status")
       .eq("date", date)
+      .eq("kind", "diaria")
       .maybeSingle();
     if (error) throw error;
     return (data as { status: TodayStatus } | null)?.status ?? "ninguna";
@@ -99,6 +110,7 @@ export default {
     const { count, error } = await supabase
       .from("sessions")
       .select("id", { count: "exact", head: true })
+      .eq("kind", "diaria")
       .eq("status", "terminada")
       .gte("date", from)
       .lte("date", to);

@@ -17,7 +17,12 @@ vi.mock("@/lib/supabase", () => ({
   },
 }));
 vi.mock("@/Services/Profile/ProfileService", () => ({
-  default: { GetProfile: vi.fn(), SaveMotive: vi.fn(), AdvanceUnit: vi.fn() },
+  default: {
+    GetProfile: vi.fn(),
+    SaveMotive: vi.fn(),
+    SaveAyuda: vi.fn(),
+    AdvanceUnit: vi.fn(),
+  },
 }));
 
 const session = { user: { id: "u1" } };
@@ -209,6 +214,20 @@ describe("auth store", () => {
     auth.profile = { ...profile, current_unit_id: "b1-viaje" } as Profile;
     expect(await auth.advanceUnit()).toBe(false);
     expect(ProfileService.AdvanceUnit).not.toHaveBeenCalled();
+  });
+  it("'Más ayuda' se guarda en el perfil y, si falla, regresa a la de antes", async () => {
+    const auth = useAuthStore();
+    auth.profile = { ...profile, ayuda: "libre" } as Profile;
+    vi.mocked(ProfileService.SaveAyuda).mockResolvedValueOnce();
+    await auth.setAyuda("con_ayuda");
+    expect(ProfileService.SaveAyuda).toHaveBeenCalledWith("u1", "con_ayuda");
+    expect(auth.profile?.ayuda).toBe("con_ayuda");
+
+    vi.mocked(ProfileService.SaveAyuda).mockRejectedValueOnce(
+      new Error("sin red"),
+    );
+    await expect(auth.setAyuda("guiada")).rejects.toThrow("sin red");
+    expect(auth.profile?.ayuda).toBe("con_ayuda");
   });
   it("cerrar sesión solo cierra este dispositivo", async () => {
     vi.mocked(supabase.auth.signOut).mockResolvedValue({
