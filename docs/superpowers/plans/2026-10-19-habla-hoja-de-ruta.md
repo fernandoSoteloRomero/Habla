@@ -14,7 +14,7 @@
 | 1. Base ✅ | [`2026-10-19-habla-fase-1-base.md`](2026-10-19-habla-fase-1-base.md) | App instalable con el estilo Línea. Una persona invitada entra con Google, elige su motivo y ve Hoy y Mi línea. Publicada en Cloudflare. | 4, 5.1, 6, 7 (front y auth), 8 (`invites`, `profiles`) |
 | 2. Evaluación con IA ✅ | [`2026-10-21-habla-fase-2-evaluacion.md`](2026-10-21-habla-fase-2-evaluacion.md) | La base de IA: la Edge Function con la key, `usage_log`, límites y los avisos de IA y de presupuesto. La evaluación inicial (1.3) y el resultado (1.4): la IA te pone en tu nivel y tu primera estación. Audio normal y lento. | 5.2 (inicial), 7.1 (`placement`), 8 (`placements`, `usage_log`), 9, 10 |
 | 3. Aprender y Repaso ✅ | [`2026-10-22-habla-fase-3-aprender-repaso.md`](2026-10-22-habla-fase-3-aprender-repaso.md) | 6 frases clave por meta en el temario. Aprender sin IA (2.3): 3 a 5 frases nuevas al día. Pestaña Repaso con "No me acordé / Me costó / Fácil", máximo 15 frases al día. Botón temporal "Seguir a la próxima estación" al terminar las 6 frases (decisión del 2026-10-22; en la fase 5 se cambia por la conversación final). | 5.3 (aprender y repasar), 5.4, 7.2 (`frases_clave`), 8 (`phrases`), 12 |
-| 4. Sesión diaria con IA | [`2026-10-22-habla-fase-4-sesion-ia.md`](2026-10-22-habla-fase-4-sesion-ia.md) | Conversar con el personaje y el resumen, con `session-generate`, `conversation-turn` y `session-close`. La IA agrega notas y variaciones a Aprender. Voz de entrada intercambiable. | 5.3, 7 (voz e IA), 8 (`sessions`) |
+| 4. Sesión diaria con IA ✅ | [`2026-10-22-habla-fase-4-sesion-ia.md`](2026-10-22-habla-fase-4-sesion-ia.md) | Conversar con el personaje y el resumen, con `session-generate`, `conversation-turn` y `session-close`. La IA agrega notas y variaciones a Aprender. Voz de entrada intercambiable. | 5.3, 7 (voz e IA), 8 (`sessions`) |
 | 5. Avance y Mi grupo | se escribe al terminar la 4 | Conversación final (`unit-check`), meta lograda con la única animación, "Casi lo tienes", revisión mensual y Mi grupo (invitar y gasto). Piloto de 1 semana. | 5.2 (mensual), 5.5, 8 (`unit_progress`), 12 (piloto) |
 
 ## Datos verificados el 2026-10-19 para las fases 2 a 5
@@ -46,9 +46,8 @@ Se guardan aquí para que no haya que investigarlos otra vez. Hay que revisar la
 - **Secretos:** se leen con `Deno.env.get`. Los nombres no pueden empezar con `SUPABASE_`.
 - **Streaming:** `supabase.functions.invoke` regresa el `Response` crudo cuando la respuesta es `text/event-stream`.
 - **Pruebas:** `deno test` necesita Deno, que no está instalado en la laptop. Para esquivarlo, la lógica pura va en módulos sin `npm:` ni `Deno`, que Vitest puede importar desde `supabase/functions/_shared/`.
-- **Riesgo con el temario:** está en `src/curriculum/` y ahí lo dejó el spec. Al usar el temario desde una función (fase 3 o 4) hay que comprobar que `functions deploy --use-api` empaqueta un archivo importado desde fuera de `supabase/functions`.
-  - Si no lo empaqueta, se mueve a `supabase/functions/_shared/curriculum/` y el front lo importa desde ahí.
-  - Por eso los archivos del temario importan entre sí con ruta relativa y la extensión `.ts`, sin `@/`.
+- **Riesgo con el temario (resuelto en la fase 4):** `functions deploy --use-api` se salta los imports de fuera de `supabase/functions` ("Skipping import path outside source root"). Por eso el temario se movió a `supabase/functions/_shared/curriculum/` y `src/curriculum/` lo re-exporta.
+  - Los archivos del temario importan entre sí con ruta relativa y la extensión `.ts`, sin `@/`.
 
 **Voz en el navegador (MDN, caniuse y WebKit Bugzilla)**
 - **Reconocimiento:** `window.SpeechRecognition || window.webkitSpeechRecognition`.

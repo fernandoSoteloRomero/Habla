@@ -35,12 +35,13 @@ npm run dev                         # http://localhost:5173
 | `npm run dev` | Servidor de desarrollo |
 | `npm run build` | Revisa tipos y genera `dist/` |
 | `npm run test` | Pruebas de Vitest |
+| `npm run ai:eval` | Pruebas de la IA con la API real (unos $0.01 USD) |
 | `npm run lint` | ESLint (las mismas reglas de BaseFront) |
 | `npm run db:push` | Aplica las migraciones pendientes de `supabase/migrations/` |
 | `npm run db:sql -- archivo.sql` | Corre un archivo SQL (también `-- --query "select 1"`) |
 | `npm run db:check-auth` | Revisa que Auth siga como debe: solo Google, hook de invitados y URLs |
 | `npm run db:secrets` | Sube `ANTHROPIC_API_KEY` de `.env.local` a los secretos de Supabase |
-| `npm run fn:deploy` | Publica la Edge Function `placement` |
+| `npm run fn:deploy` | Publica las Edge Functions `placement` y `session` |
 | `npm run generate-pwa-assets` | Regenera los íconos desde `public/logo.svg` |
 | `npm run deploy` | Build y publicación en Cloudflare |
 
@@ -80,10 +81,37 @@ npm run dev                         # http://localhost:5173
 
 - **Sin IA:** las frases nuevas salen de `frases_clave` en `src/curriculum/units.ts` (6 por meta). Cada sesión enseña hasta 4 y al terminar entran al repaso para mañana.
 - **Repaso:** máximo 15 frases al día, con "No me acordé / Me costó / Fácil" (spec 5.4). Las fechas son las locales del teléfono.
+- **Máximo 4 frases nuevas al día**, aunque se hagan varias sesiones. Las correcciones de la conversación no cuentan.
 - **Avance temporal de estación:** cuando las 6 frases de la meta ya están en tu repaso, Hoy muestra "Seguir a la próxima estación" (función `advance_unit`). En la fase 5 se cambia por la conversación final.
 - **Ver el repaso de alguien:**
   ```bash
   npm run db:sql -- --query "select en, due_on, interval_days, ease from public.phrases order by id"
+  ```
+
+## Sesión con IA (fase 4)
+
+- **Una sola Edge Function, `session`,** con tres acciones:
+  - `start`: prepara la sesión del día, con los ejemplos de las frases nuevas, la escena y la apertura del personaje.
+  - `turn`: cada turno de la conversación.
+  - `close`: el resumen.
+  - En `usage_log`, cada acción se registra como `session-generate`, `conversation-turn` y `session-close`.
+  - Se publica junto con `placement` usando `npm run fn:deploy`.
+- **El temario** vive en `supabase/functions/_shared/curriculum/`, porque el CLI no sube archivos de fuera de `supabase/functions`. La app lo importa con los re-exports de `src/curriculum/`.
+  - Cada meta tiene dos escenas, una de trabajo y otra de viajes. Con el motivo "ambos" se alternan por día.
+- **La conversación la guarda el servidor** en `sessions.transcript`. La app solo manda el texto nuevo y nunca guarda audio.
+- **Límites por persona en 24 horas:** 3 preparaciones de sesión, 40 turnos y 3 resúmenes.
+  - Cada conversación tiene máximo 10 turnos.
+  - En cada sesión entran al repaso máximo 3 correcciones.
+- **Sin IA** (por presupuesto, límite o falla), Repasar y Aprender funcionan igual, Conversar se puede saltar y el resumen sale sin "Lo que hiciste bien".
+- **Voz:**
+  - En Chrome o Edge de computadora y en Android, el micrófono se mantiene presionado mientras hablas.
+  - En iPhone se escribe o se dicta con el micrófono del teclado.
+- **Pruebas de la IA:** `npm run ai:eval` corre 24 mensajes de ejemplo de los 4 niveles y revisa que la IA corrija lo que debe.
+  - Cuesta alrededor de $0.01 USD.
+  - **Córrela antes de cambiar cualquier prompt** (en `supabase/functions/_shared/sessionPrompts.ts`).
+- **Gasto por función:**
+  ```bash
+  npm run db:sql -- --query "select function, count(*), sum(cost_usd) from public.usage_log group by function"
   ```
 
 ## Invitar a alguien
