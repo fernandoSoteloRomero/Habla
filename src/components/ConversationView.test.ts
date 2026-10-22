@@ -38,7 +38,11 @@ const opener: PersonajeTurn = {
   quien: "personaje",
   en: "Hi! Welcome to Sam's Diner. Are you ready to order?",
   es: "Hola, bienvenido a Sam's Diner. ¿Ya sabe qué va a pedir?",
-  sugerencias: ["Yes, please.", "Not yet.", "What do you recommend?"],
+  sugerencias: [
+    { en: "Yes, please.", es: "Sí, por favor." },
+    { en: "Not yet.", es: "Todavía no." },
+    { en: "What do you recommend?", es: "¿Qué me recomienda?" },
+  ],
   correccion: null,
   terminada: false,
 };
@@ -46,7 +50,7 @@ const reply: PersonajeTurn = {
   quien: "personaje",
   en: "Great choice. Anything to drink?",
   es: "Buena elección. ¿Algo de tomar?",
-  sugerencias: ["A coke, please."],
+  sugerencias: [{ en: "A coke, please.", es: "Una coca, por favor." }],
   correccion: {
     original: "I want a burger",
     mejor: "I'd like a burger, please.",
@@ -60,6 +64,7 @@ const reply: PersonajeTurn = {
 function session(transcript: Turn[] = [opener]): SessionView {
   return {
     id: "s1",
+    kind: "diaria",
     date: "2026-10-22",
     unitId: unit.id,
     status: "en_curso",
@@ -79,6 +84,7 @@ function session(transcript: Turn[] = [opener]): SessionView {
 function setup(
   level: "A1" | "A2" | "B1" = "A2",
   transcript?: Turn[],
+  ayuda: "guiada" | "con_ayuda" | "libre" = "con_ayuda",
 ): VueWrapper {
   vi.mocked(useSpeechOutput).mockReturnValue({ supported: true, speak });
   vi.mocked(useSpeechInput).mockReturnValue({
@@ -92,7 +98,7 @@ function setup(
     useKeyboard: vi.fn(),
   });
   return mount(ConversationView, {
-    props: { session: session(transcript), level },
+    props: { session: session(transcript), level, ayuda },
   });
 }
 
@@ -147,7 +153,7 @@ describe("ConversationView", () => {
     expect(w.text()).toContain(reply.en);
     expect((w.get("textarea").element as HTMLTextAreaElement).value).toBe("");
   });
-  it("las sugerencias se ven en A2 y tocarlas las pone en el cuadro sin mandarlas", async () => {
+  it("con ayuda, las sugerencias se tocan y quedan en el cuadro sin mandarlas", async () => {
     const w = setup("A2");
     expect(w.text()).toContain("Si no sabes qué decir:");
     await button(w, "What do you recommend?").trigger("click");
@@ -156,8 +162,51 @@ describe("ConversationView", () => {
     );
     expect(SessionService.Turn).not.toHaveBeenCalled();
   });
-  it("en B1 no hay sugerencias", () => {
-    expect(setup("B1").text()).not.toContain("Si no sabes qué decir:");
+  it("en libre no hay sugerencias, solo el cuadro para escribir", () => {
+    const w = setup("B1", undefined, "libre");
+    expect(w.text()).not.toContain("Si no sabes qué decir:");
+    expect(w.find("textarea").exists()).toBe(true);
+  });
+  it("en guiada se elige la respuesta (con su traducción) y se manda con un toque", async () => {
+    vi.mocked(SessionService.Turn).mockResolvedValue({
+      persona: { quien: "persona", texto: "Not yet." },
+      personaje: { ...reply, correccion: null },
+    });
+    const w = setup("A1", undefined, "guiada");
+    expect(w.text()).toContain("Elige tu respuesta:");
+    expect(w.text()).toContain("Todavía no.");
+    expect(w.find("textarea").exists()).toBe(false);
+    await button(w, "Not yet.").trigger("click");
+    await flushPromises();
+    expect(SessionService.Turn).toHaveBeenCalledWith("s1", "Not yet.");
+    // Las siguientes opciones son las de la nueva respuesta del personaje
+    expect(w.text()).toContain("Una coca, por favor.");
+  });
+  it("en guiada, si la IA no respondió, 'Intentar de nuevo' manda la misma opción", async () => {
+    vi.mocked(SessionService.Turn).mockRejectedValueOnce(
+      new SessionError("ia"),
+    );
+    const w = setup("A1", undefined, "guiada");
+    await button(w, "Not yet.").trigger("click");
+    await flushPromises();
+    vi.mocked(SessionService.Turn).mockResolvedValue({
+      persona: { quien: "persona", texto: "Not yet." },
+      personaje: { ...reply, correccion: null },
+    });
+    await button(w, "Intentar de nuevo").trigger("click");
+    await flushPromises();
+    expect(SessionService.Turn).toHaveBeenLastCalledWith("s1", "Not yet.");
+  });
+  it("se puede pedir más o menos ayuda", async () => {
+    const w = setup("A2");
+    await button(w, "Más ayuda").trigger("click");
+    await button(w, "Menos ayuda").trigger("click");
+    expect(w.emitted("ayuda")).toEqual([["guiada"], ["libre"]]);
+    expect(
+      setup("A2", undefined, "guiada")
+        .findAll("button")
+        .some((b) => b.text() === "Más ayuda"),
+    ).toBe(false);
   });
   it("si la IA no respondió, el texto se queda y se puede volver a mandar", async () => {
     vi.mocked(SessionService.Turn).mockRejectedValueOnce(

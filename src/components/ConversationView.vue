@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from "vue";
+import { lessHelp, moreHelp } from "@shared/ayuda";
 import { supportFor } from "@shared/sessionPrompts";
 import ChatInput from "@/components/ChatInput.vue";
 import PictoTile from "@/components/PictoTile.vue";
@@ -12,6 +13,7 @@ import SessionService, {
   SessionError,
 } from "@/Services/Session/SessionService";
 import type {
+  Ayuda,
   PersonajeTurn,
   SessionClientError,
   SessionView,
@@ -21,8 +23,16 @@ import type {
 // Conversar (pantallas 2.4 y 2.5): una escena de la meta con un personaje de la IA.
 // La persona habla en negro; si algo suena mejor de otra forma, va en la placa verde y entra a
 // su repaso. El historial lo guarda la función: aquí solo se manda el texto nuevo.
-const props = defineProps<{ session: SessionView; level: LevelId }>();
-const emit = defineEmits<{ done: [] }>();
+// Cuánta ayuda tiene (no a todos se les facilita chatear):
+// - guiada: elige su respuesta entre 3 opciones con su traducción, con un toque.
+// - con_ayuda: escribe o dicta, con frases sugeridas.
+// - libre: escribe o dicta, sin sugerencias.
+const props = defineProps<{
+  session: SessionView;
+  level: LevelId;
+  ayuda: Ayuda;
+}>();
+const emit = defineEmits<{ done: []; ayuda: [ayuda: Ayuda] }>();
 
 const speech = useSpeechInput();
 const { speak } = useSpeechOutput();
@@ -54,9 +64,13 @@ const finished = computed(
     personaTurns.value >= MAX_USER_TURNS,
 );
 const suggestions = computed(() =>
-  support.suggestions && !finished.value
+  props.ayuda !== "libre" && !finished.value
     ? (lastPersonaje.value?.sugerencias ?? [])
     : [],
+);
+// En guiada se elige la respuesta; si la IA no dio opciones, se escribe
+const choosing = computed(
+  () => props.ayuda === "guiada" && suggestions.value.length > 0,
 );
 // "el mesero" → "El mesero está escribiendo…"
 const typing = computed(
@@ -97,6 +111,8 @@ async function reload(): Promise<void> {
 
 async function send(text: string): Promise<void> {
   if (sending.value || text.trim() === "") return;
+  // Así "Intentar de nuevo" manda lo mismo, también en guiada
+  draft.value = text;
   sending.value = true;
   errorCode.value = null;
   try {
@@ -305,29 +321,69 @@ watch(
     <Button v-if="finished" @click="emit('done')">Ver tu resumen</Button>
 
     <template v-else>
-      <!-- Frases sugeridas (diseño: .l-sugg) -->
-      <template v-if="suggestions.length > 0">
-        <p class="mb-1.5 text-[12.5px] text-ink-2">Si no sabes qué decir:</p>
-        <div class="mb-2 flex flex-wrap gap-1.5">
+      <!-- Guiada: se elige la respuesta con un toque (cada una con su traducción) -->
+      <template v-if="choosing">
+        <p class="mb-1.5 text-sm font-bold">Elige tu respuesta:</p>
+        <div class="flex flex-col gap-[7px]">
           <button
             v-for="suggestion in suggestions"
-            :key="suggestion"
+            :key="suggestion.en"
             type="button"
-            lang="en"
-            class="rounded-lg border-2 border-rule px-[9px] py-1.5 text-[12.5px] font-bold"
-            @click="draft = suggestion"
+            class="rounded-xl border-2 border-rule px-3.5 py-2.5 text-left disabled:opacity-50"
+            :disabled="sending"
+            @click="send(suggestion.en)"
           >
-            {{ suggestion }}
+            <b class="block text-base" lang="en">{{ suggestion.en }}</b>
+            <span class="text-sm text-ink-2">{{ suggestion.es }}</span>
           </button>
         </div>
       </template>
 
-      <ChatInput
-        v-model="draft"
-        :disabled="sending"
-        :speech="speech"
-        @send="send"
-      />
+      <template v-else>
+        <!-- Con ayuda: frases sugeridas (diseño: .l-sugg) -->
+        <template v-if="suggestions.length > 0">
+          <p class="mb-1.5 text-[12.5px] text-ink-2">Si no sabes qué decir:</p>
+          <div class="mb-2 flex flex-wrap gap-1.5">
+            <button
+              v-for="suggestion in suggestions"
+              :key="suggestion.en"
+              type="button"
+              lang="en"
+              class="rounded-lg border-2 border-rule px-[9px] py-1.5 text-[12.5px] font-bold"
+              @click="draft = suggestion.en"
+            >
+              {{ suggestion.en }}
+            </button>
+          </div>
+        </template>
+
+        <ChatInput
+          v-model="draft"
+          :disabled="sending"
+          :speech="speech"
+          @send="send"
+        />
+      </template>
+
+      <!-- La persona decide cuánta ayuda quiere -->
+      <p class="mt-2.5 flex justify-center gap-5 text-sm">
+        <button
+          v-if="ayuda !== 'guiada'"
+          type="button"
+          class="font-bold text-l1 underline underline-offset-[3px]"
+          @click="emit('ayuda', moreHelp(ayuda))"
+        >
+          Más ayuda
+        </button>
+        <button
+          v-if="ayuda !== 'libre'"
+          type="button"
+          class="font-bold text-l1 underline underline-offset-[3px]"
+          @click="emit('ayuda', lessHelp(ayuda))"
+        >
+          Menos ayuda
+        </button>
+      </p>
 
       <Button
         v-if="personaTurns > 0"
